@@ -1,0 +1,149 @@
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">Dashboard</h1>
+            <p class="text-muted mb-0">Welcome back, <%= user.email %></p>
+        </div>
+        <a href="/projects/create" class="btn btn-success">
+            <i class="bi bi-plus-lg me-1"></i> New Project
+        </a>
+    </div>
+
+    <!-- Pending Access Requests Alert -->
+    <% if (typeof pendingRequests !== 'undefined' && pendingRequests && pendingRequests.length > 0) { %>
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="bi bi-bell-fill me-3 fs-4"></i>
+        <div>
+            <strong><%= pendingRequests.length %> pending access request(s)</strong> for your projects.
+            <a href="#pending-requests" class="alert-link ms-2">View requests</a>
+        </div>
+    </div>
+    <% } %>
+
+    <div class="row g-4">
+        <!-- Owned Projects -->
+        <div class="col-lg-8">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-folder-fill text-success me-2"></i>My Projects</h5>
+                    <span class="badge bg-success"><%= ownedProjects.length %></span>
+                </div>
+                <div class="card-body p-0">
+                    <% if (ownedProjects.length === 0) { %>
+                    <div class="text-center py-5">
+                        <i class="bi bi-folder-plus text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3 mb-3">You haven't created any projects yet</p>
+                        <a href="/projects/create" class="btn btn-outline-success">
+                            <i class="bi bi-plus-lg me-1"></i> Create Your First Project
+                        </a>
+                    </div>
+                    <% } else { %>
+                    <div class="list-group list-group-flush">
+                        <% ownedProjects.forEach(function(project) { %>
+                        <a href="/projects/<%= project.id %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-semibold"><%= project.name %></h6>
+                                <small class="text-muted">
+                                    <% if (project.github_url) { %>
+                                    <i class="bi bi-github me-1"></i><%= project.github_url %>
+                                    <% } else { %>
+                                    <i class="bi bi-hash me-1"></i>No repo linked
+                                    <% } %>
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted d-block"><%= new Date(project.created_at).toLocaleDateString() %></small>
+                                <i class="bi bi-chevron-right text-success"></i>
+                            </div>
+                        </a>
+                        <% }); %>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Shared Projects -->
+            <% if (typeof sharedProjects !== 'undefined' && sharedProjects && sharedProjects.length > 0) { %>
+            <div class="card bg-dark border-secondary mt-4">
+                <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>Shared With Me</h5>
+                    <span class="badge bg-info"><%= sharedProjects.length %></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <% sharedProjects.forEach(function(project) { %>
+                        <a href="/projects/<%= project.id %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-semibold"><%= project.name %></h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-person me-1"></i>by <%= project.owner_name || project.owner_email %>
+                                    <span class="badge bg-<%= project.permission === 'edit' ? 'warning' : 'secondary' %> ms-2">
+                                        <%= project.permission %>
+                                    </span>
+                                </small>
+                            </div>
+                            <i class="bi bi-chevron-right text-info"></i>
+                        </a>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Stats Card -->
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-body text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <h3 class="fw-bold text-success mb-0"><%= ownedProjects.length %></h3>
+                            <small class="text-muted">Projects</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="fw-bold text-info mb-0"><%= sharedProjects ? sharedProjects.length : 0 %></h3>
+                            <small class="text-muted">Shared</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Requests (if any) -->
+            <% if (typeof pendingRequests !== 'undefined' && pendingRequests && pendingRequests.length > 0) { %>
+            <div class="card bg-dark border-secondary" id="pending-requests">
+                <div class="card-header bg-dark border-secondary">
+                    <h5 class="mb-0"><i class="bi bi-bell-fill text-warning me-2"></i>Pending Requests</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <% pendingRequests.forEach(function(req) { %>
+                        <div class="list-group-item bg-dark text-light border-secondary">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong><%= req.user_name || req.username || req.email %></strong>
+                                    <small class="d-block text-muted"><%= req.project_name %></small>
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <form action="/access/<%= req.id %>/approve" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Approve">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    </form>
+                                    <form action="/access/<%= req.id %>/reject" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</div>

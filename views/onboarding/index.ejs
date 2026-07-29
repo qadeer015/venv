@@ -1,0 +1,53 @@
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-md-6 col-lg-5">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-badge-fill text-success" style="font-size: 3rem;"></i>
+                <h2 class="fw-bold mt-2">Complete Your Profile</h2>
+                <p class="text-muted">Just a few details to get started</p>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <% } %>
+
+            <div class="card bg-dark border-secondary">
+                <div class="card-body p-4">
+                    <form action="/onboarding" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="name" name="name" required autofocus placeholder="John Doe">
+                            <div class="form-text text-muted">Your display name</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark text-muted border-secondary">@</span>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="username" name="username" required placeholder="johndoe" pattern="[a-zA-Z0-9_]+" title="Letters, numbers, and underscores only">
+                            </div>
+                            <div class="form-text text-muted">Unique identifier for your profile</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="organization" class="form-label">Organization <span class="text-muted">(optional)</span></label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="organization" name="organization" placeholder="Acme Inc.">
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
+                            <i class="bi bi-check-lg me-2"></i>Complete Setup
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-center mt-3">
+                <a href="/auth/logout" class="text-danger text-decoration-none"
+                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="bi bi-box-arrow-right me-1"></i>Cancel and logout
+                </a>
+            </p>
+            <form id="logout-form" action="/auth/logout" method="POST" class="d-none"></form>
+        </div>
+    </div>
+</div>
