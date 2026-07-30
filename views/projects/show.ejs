@@ -81,10 +81,10 @@
                                     </td>
                                     <td class="align-middle">
                                         <div class="d-flex align-items-center gap-2">
-                                            <code class="env-value text-muted" id="env-value-<%= env.id %>">
+                                            <code class="env-value text-muted" id="env-value-<%= env.id %>" data-env-value="<%= encodeURIComponent(env.env_value) %>">
                                                 ••••••••••••••••••••••••••••••
                                             </code>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleEnvValue(<%= env.id %>, '<%= env.env_value.replace(/'/g, "\\'").replace(/\\/g, "\\\\") %>')" title="Toggle visibility">
+                                            <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
                                                 <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue(this, '<%= env.id %>')" title="Copy value" data-env-value="<%= env.env_value %>">
@@ -245,17 +245,22 @@
 </div>
 
 <script>
-function toggleEnvValue(id, value) {
-    const el = document.getElementById('env-value-' + id);
-    const icon = document.getElementById('eye-icon-' + id);
-    if (el.textContent === '••••••••••••••••••••••••••••••') {
-        el.textContent = value;
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        el.textContent = '••••••••••••••••••••••••••••••';
-        icon.className = 'bi bi-eye';
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle environment variable visibility
+    document.querySelectorAll('.toggle-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.dataset.envId;
+            var el = document.getElementById('env-value-' + id);
+            var icon = document.getElementById('eye-icon-' + id);
+            if (el.textContent === '••••••••••••••••••••••••••••••') {
+                el.textContent = decodeURIComponent(el.dataset.envValue);
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                el.textContent = '••••••••••••••••••••••••••••••';
+                icon.className = 'bi bi-eye';
+            }
+        });
+    });
 
 function copyEnvValue(button, id) {
     // Get the value from the data attribute (HTML-encoded, so we decode it)

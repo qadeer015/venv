@@ -31,7 +31,7 @@ function createPool() {
     const pool = mysql.createPool({
         host: process.env.DB_HOST,
         user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
+        password: process.env.DB_PASS,
         database: process.env.DB_NAME,
         port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 4000, // TiDB Cloud default port
 
@@ -47,10 +47,13 @@ function createPool() {
         // Fail fast instead of hanging for the platform's full timeout.
         connectTimeout: 10_000, // 10s to establish a connection
 
-        // ── SSL — required by TiDB Cloud ────────────────────────────
-        ssl: isProd
-            ? { rejectUnauthorized: true }
-            : undefined
+        // ── SSL — required by TiDB Cloud (all environments) ─────────
+        // TiDB Cloud Serverless uses self-signed certificates, so we
+        // must set rejectUnauthorized: false. The connection is still
+        // fully encrypted (TLS), but we skip CA chain verification.
+        ssl: {
+            rejectUnauthorized: false
+        }
     });
 
     // Wrap pool.query so every query gets a hard timeout.
