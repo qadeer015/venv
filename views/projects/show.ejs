@@ -1,301 +1,378 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/dashboard" class="text-success text-decoration-none">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><%= project.name %></li>
+            <li class="breadcrumb-item"><a href="/dashboard" class="text-success text-decoration-none">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                <%= project.name %>
+            </li>
         </ol>
     </nav>
 
-    <% if (typeof error !== 'undefined' && error) { %>
-    <div class="alert alert-danger"><%= error %></div>
-    <% } %>
-    <% if (typeof success !== 'undefined' && success) { %>
-    <div class="alert alert-success"><%= success %></div>
-    <% } %>
-
-    <!-- Project Header -->
-    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
-        <div>
-            <h1 class="fw-bold mb-1"><%= project.name %></h1>
-            <p class="text-muted mb-0">
-                <% if (project.github_url) { %>
-                <i class="bi bi-github me-1"></i><a href="<%= project.github_url %>" target="_blank" class="text-muted text-decoration-none"><%= project.github_url %></a>
-                <% } %>
-                <% if (project.domain) { %>
-                <span class="mx-2">|</span>
-                <i class="bi bi-globe me-1"></i><%= project.domain %>
-                <% } %>
-                <% if (project.description) { %>
-                <br><small><%= project.description %></small>
-                <% } %>
-            </p>
+    <% if (typeof error !=='undefined' && error) { %>
+        <div class="alert alert-danger">
+            <%= error %>
         </div>
-        <div class="d-flex gap-2">
-            <% if (isOwner) { %>
-            <a href="/projects/<%= project.id %>/edit" class="btn btn-outline-warning btn-sm">
-                <i class="bi bi-pencil"></i> Edit
-            </a>
-            <form action="/projects/<%= project.id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Delete this project and all its environment variables?')">
-                <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
-            </form>
-            <% } else { %>
-            <span class="badge bg-info fs-6 align-self-center">
-                <i class="bi bi-eye me-1"></i><%= userAccess.permission === 'edit' ? 'Editor' : 'Viewer' %>
-            </span>
-            <% } %>
-        </div>
-    </div>
+        <% } %>
+            <% if (typeof success !=='undefined' && success) { %>
+                <div class="alert alert-success">
+                    <%= success %>
+                </div>
+                <% } %>
 
-    <div class="row g-4">
-        <!-- Environment Variables Section -->
-        <div class="col-lg-8">
-            <div class="card bg-dark border-secondary">
-                <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment Variables</h5>
-                    <span class="badge bg-warning text-dark"><%= envVars.length %></span>
-                </div>
-                <div class="card-body p-0">
-                    <% if (envVars.length === 0) { %>
-                    <div class="text-center py-5">
-                        <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
-                        <p class="text-muted mt-3 mb-0">No environment variables yet</p>
-                        <small class="text-muted">Add your first key-value pair below</small>
-                    </div>
-                    <% } else { %>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th class="border-secondary" style="width: 35%;">Key</th>
-                                    <th class="border-secondary">Value</th>
-                                    <th class="border-secondary text-end" style="width: 80px;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <% envVars.forEach(function(env) { %>
-                                <tr>
-                                    <td class="align-middle">
-                                        <code class="text-warning"><%= env.env_key %></code>
-                                    </td>
-                                    <td class="align-middle">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <code class="env-value text-muted" id="env-value-<%= env.id %>" data-env-value="<%= encodeURIComponent(env.env_value) %>">
-                                                ••••••••••••••••••••••••••••••
-                                            </code>
-                                            <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
-                                                <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue(this, '<%= env.id %>')" title="Copy value" data-env-value="<%= env.env_value %>">
-                                                <i class="bi bi-clipboard"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td class="align-middle text-end">
-                                        <% if (isOwner || (userAccess && userAccess.permission === 'edit')) { %>
-                                        <form action="/projects/<%= project.id %>/environments/<%= env.id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Delete this environment variable?')">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Delete">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </form>
-                                        <% } %>
-                                    </td>
-                                </tr>
-                                <% }); %>
-                            </tbody>
-                        </table>
-                    </div>
-                    <% } %>
-                </div>
-            </div>
-
-            <!-- Add Environment Variable Form -->
-            <% if (isOwner || (userAccess && userAccess.permission === 'edit')) { %>
-            <div class="card bg-dark border-secondary mt-4">
-                <div class="card-header bg-dark border-secondary">
-                    <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add Environment Variable</h5>
-                </div>
-                <div class="card-body p-4">
-                    <form action="/projects/<%= project.id %>/environments" method="POST">
-                        <div class="row g-3">
-                            <div class="col-md-5">
-                                <label for="envKey" class="form-label">Key</label>
-                                <input type="text" class="form-control bg-dark text-light border-secondary font-monospace" id="envKey" name="envKey" required placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*" title="Uppercase letters, numbers, and underscores">
-                            </div>
-                            <div class="col-md-5">
-                                <label for="envValue" class="form-label">Value</label>
-                                <input type="text" class="form-control bg-dark text-light border-secondary font-monospace" id="envValue" name="envValue" placeholder="mysql://user:pass@host/db">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="bi bi-plus-lg"></i> Add
-                                </button>
-                            </div>
+                    <!-- Project Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+                        <div>
+                            <h1 class="fw-bold mb-1">
+                                <%= project.name %>
+                            </h1>
+                            <p class="text-muted mb-0">
+                                <% if (project.github_url) { %>
+                                    <i class="bi bi-github me-1"></i><a href="<%= project.github_url %>" target="_blank"
+                                        class="text-muted text-decoration-none">
+                                        <%= project.github_url %>
+                                    </a>
+                                    <% } %>
+                                        <% if (project.domain) { %>
+                                            <span class="mx-2">|</span>
+                                            <i class="bi bi-globe me-1"></i>
+                                            <%= project.domain %>
+                                                <% } %>
+                                                    <% if (project.description) { %>
+                                                        <br><small>
+                                                            <%= project.description %>
+                                                        </small>
+                                                        <% } %>
+                            </p>
                         </div>
-                    </form>
-                </div>
-            </div>
-            <% } %>
-        </div>
-
-        <!-- Access Management Sidebar -->
-        <div class="col-lg-4">
-            <!-- Project Info -->
-            <div class="card bg-dark border-secondary mb-4">
-                <div class="card-header bg-dark border-secondary">
-                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Project Info</h5>
-                </div>
-                <div class="card-body">
-                    <dl class="mb-0">
-                        <dt class="text-muted small">Created</dt>
-                        <dd><%= new Date(project.created_at).toLocaleString() %></dd>
-                        <dt class="text-muted small">Updated</dt>
-                        <dd><%= new Date(project.updated_at).toLocaleString() %></dd>
-                        <dt class="text-muted small">Environment Variables</dt>
-                        <dd><%= envVars.length %></dd>
-                    </dl>
-                </div>
-            </div>
-
-            <!-- Access Management (Owner only) -->
-            <% if (isOwner) { %>
-            <div class="card bg-dark border-secondary mb-4">
-                <div class="card-header bg-dark border-secondary">
-                    <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>Access Management</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Grant Access Form -->
-                    <form action="/projects/<%= project.id %>/access/grant" method="POST" class="mb-3">
-                        <label for="grantEmail" class="form-label small">Grant access by email</label>
-                        <div class="input-group mb-2">
-                            <input type="email" class="form-control bg-dark text-light border-secondary" id="grantEmail" name="email" required placeholder="user@example.com">
-                            <button type="submit" class="btn btn-outline-info">
-                                <i class="bi bi-person-plus"></i>
-                            </button>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="permission" id="permView" value="view" checked>
-                            <label class="form-check-label small" for="permView">View</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="permission" id="permEdit" value="edit">
-                            <label class="form-check-label small" for="permEdit">Edit</label>
-                        </div>
-                    </form>
-
-                    <!-- Access List -->
-                    <% if (accessList.length > 0) { %>
-                    <hr class="border-secondary">
-                    <h6 class="small text-muted mb-2">Users with access</h6>
-                    <div class="list-group list-group-flush">
-                        <% accessList.forEach(function(access) { %>
-                        <div class="list-group-item bg-dark text-light border-secondary px-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <small><%= access.user_name || access.email %></small>
-                                <span class="badge bg-<%= access.status === 'approved' ? (access.permission === 'edit' ? 'warning' : 'secondary') : (access.status === 'pending' ? 'info' : 'danger') %> ms-1">
-                                    <%= access.status === 'approved' ? access.permission : access.status %>
-                                </span>
-                            </div>
-                            <div class="d-flex gap-1">
-                                <% if (access.status === 'pending') { %>
-                                <form action="/access/<%= access.id %>/approve" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-success border-0" title="Approve">
-                                        <i class="bi bi-check-lg"></i>
-                                    </button>
-                                </form>
-                                <form action="/access/<%= access.id %>/reject" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Reject">
-                                        <i class="bi bi-x-lg"></i>
+                        <div class="d-flex gap-2">
+                            <% if (isOwner) { %>
+                                <a href="/projects/<%= project.id %>/edit" class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form action="/projects/<%= project.id %>?_method=DELETE" method="POST" class="d-inline"
+                                    onsubmit="return confirm('Delete this project and all its environment variables?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-trash"></i> Delete
                                     </button>
                                 </form>
                                 <% } else { %>
-                                <form action="/access/<%= access.id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Revoke access for this user?')">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Revoke">
-                                        <i class="bi bi-person-x"></i>
-                                    </button>
-                                </form>
-                                <% } %>
-                            </div>
+                                    <span class="badge bg-info fs-6 align-self-center">
+                                        <i class="bi bi-eye me-1"></i>
+                                        <%= userAccess.permission==='edit' ? 'Editor' : 'Viewer' %>
+                                    </span>
+                                    <% } %>
                         </div>
-                        <% }); %>
                     </div>
-                    <% } else { %>
-                    <p class="text-muted small mb-0">No users have been granted access yet</p>
-                    <% } %>
-                </div>
-            </div>
-            <% } %>
 
-            <!-- Request Access (non-owner) -->
-            <% if (!isOwner && !userAccess) { %>
-            <div class="card bg-dark border-secondary">
-                <div class="card-body text-center">
-                    <p class="text-muted mb-3">You don't have access to this project yet</p>
-                    <form action="/projects/<%= project.id %>/access/request" method="POST">
-                        <button type="submit" class="btn btn-outline-info w-100">
-                            <i class="bi bi-door-open me-1"></i> Request Access
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <% } %>
-        </div>
-    </div>
+                    <div class="row g-4">
+                        <!-- Environment Variables Section -->
+                        <div class="col-lg-8">
+                            <div class="card bg-dark border-secondary">
+                                <div
+                                    class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment
+                                        Variables</h5>
+                                    <span class="badge bg-warning text-dark">
+                                        <%= envVars.length %>
+                                    </span>
+                                </div>
+                                <div class="card-body p-0">
+                                    <% if (envVars.length===0) { %>
+                                        <div class="text-center py-5">
+                                            <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
+                                            <p class="text-muted mt-3 mb-0">No environment variables yet</p>
+                                            <small class="text-muted">Add your first key-value pair below</small>
+                                        </div>
+                                        <% } else { %>
+                                            <div class="table-responsive">
+                                                <table class="table table-dark table-hover mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="border-secondary" style="width: 35%;">Key</th>
+                                                            <th class="border-secondary">Value</th>
+                                                            <th class="border-secondary text-end" style="width: 80px;">
+                                                                Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% envVars.forEach(function(env) { %>
+                                                            <tr>
+                                                                <td class="align-middle">
+                                                                    <code class="text-warning"><%= env.env_key %></code>
+                                                                </td>
+                                                                <td class="align-middle">
+                                                                    <div class="d-flex align-items-center gap-2">
+                                                                        <code class="env-value text-muted"
+                                                                            id="env-value-<%= env.id %>"
+                                                                            data-env-value="<%= encodeURIComponent(env.env_value) %>">
+                                                ••••••••••••••••••••••••••••••
+                                            </code>
+                                                                        <button
+                                                                            class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn"
+                                                                            data-env-id="<%= env.id %>"
+                                                                            title="Toggle visibility">
+                                                                            <i class="bi bi-eye"
+                                                                                id="eye-icon-<%= env.id %>"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            class="btn btn-sm btn-outline-secondary border-0"
+                                                                            onclick="copyEnvValue(this, '<%= env.id %>')"
+                                                                            title="Copy value"
+                                                                            data-env-value="<%= env.env_value %>">
+                                                                            <i class="bi bi-clipboard"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="align-middle text-end">
+                                                                    <% if (isOwner || (userAccess &&
+                                                                        userAccess.permission==='edit' )) { %>
+                                                                        <form
+                                                                            action="/projects/<%= project.id %>/environments/<%= env.id %>?_method=DELETE"
+                                                                            method="POST" class="d-inline"
+                                                                            onsubmit="return confirm('Delete this environment variable?')">
+                                                                            <button type="submit"
+                                                                                class="btn btn-sm btn-outline-danger border-0"
+                                                                                title="Delete">
+                                                                                <i class="bi bi-x-lg"></i>
+                                                                            </button>
+                                                                        </form>
+                                                                        <% } %>
+                                                                </td>
+                                                            </tr>
+                                                            <% }); %>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <% } %>
+                                </div>
+                            </div>
+
+                            <!-- Add Environment Variable Form -->
+                            <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
+                                <div class="card bg-dark border-secondary mt-4">
+                                    <div class="card-header bg-dark border-secondary">
+                                        <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
+                                            Environment Variable</h5>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <form action="/projects/<%= project.id %>/environments" method="POST">
+                                            <div class="row g-3">
+                                                <div class="col-md-5">
+                                                    <label for="envKey" class="form-label">Key</label>
+                                                    <input type="text"
+                                                        class="form-control bg-dark text-light border-secondary font-monospace"
+                                                        id="envKey" name="envKey" required placeholder="DATABASE_URL"
+                                                        pattern="[A-Z_][A-Z0-9_]*"
+                                                        title="Uppercase letters, numbers, and underscores">
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <label for="envValue" class="form-label">Value</label>
+                                                    <input type="text"
+                                                        class="form-control bg-dark text-light border-secondary font-monospace"
+                                                        id="envValue" name="envValue"
+                                                        placeholder="mysql://user:pass@host/db">
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <button type="submit" class="btn btn-success w-100">
+                                                        <i class="bi bi-plus-lg"></i> Add
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                <% } %>
+                        </div>
+
+                        <!-- Access Management Sidebar -->
+                        <div class="col-lg-4">
+                            <!-- Project Info -->
+                            <div class="card bg-dark border-secondary mb-4">
+                                <div class="card-header bg-dark border-secondary">
+                                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Project Info</h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="mb-0">
+                                        <dt class="text-muted small">Created</dt>
+                                        <dd>
+                                            <%= new Date(project.created_at).toLocaleString() %>
+                                        </dd>
+                                        <dt class="text-muted small">Updated</dt>
+                                        <dd>
+                                            <%= new Date(project.updated_at).toLocaleString() %>
+                                        </dd>
+                                        <dt class="text-muted small">Environment Variables</dt>
+                                        <dd>
+                                            <%= envVars.length %>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+
+                            <!-- Access Management (Owner only) -->
+                            <% if (isOwner) { %>
+                                <div class="card bg-dark border-secondary mb-4">
+                                    <div class="card-header bg-dark border-secondary">
+                                        <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>Access
+                                            Management</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Grant Access Form -->
+                                        <form action="/projects/<%= project.id %>/access/grant" method="POST"
+                                            class="mb-3">
+                                            <label for="grantEmail" class="form-label small">Grant access by
+                                                email</label>
+                                            <div class="input-group mb-2">
+                                                <input type="email"
+                                                    class="form-control bg-dark text-light border-secondary"
+                                                    id="grantEmail" name="email" required
+                                                    placeholder="user@example.com">
+                                                <button type="submit" class="btn btn-outline-info">
+                                                    <i class="bi bi-person-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="permission"
+                                                    id="permView" value="view" checked>
+                                                <label class="form-check-label small" for="permView">View</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="permission"
+                                                    id="permEdit" value="edit">
+                                                <label class="form-check-label small" for="permEdit">Edit</label>
+                                            </div>
+                                        </form>
+
+                                        <!-- Access List -->
+                                        <% if (accessList.length> 0) { %>
+                                            <hr class="border-secondary">
+                                            <h6 class="small text-muted mb-2">Users with access</h6>
+                                            <div class="list-group list-group-flush">
+                                                <% accessList.forEach(function(access) { %>
+                                                    <div
+                                                        class="list-group-item bg-dark text-light border-secondary px-0 d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <small>
+                                                                <%= access.user_name || access.email %>
+                                                            </small>
+                                                            <span
+                                                                class="badge bg-<%= access.status === 'approved' ? (access.permission === 'edit' ? 'warning' : 'secondary') : (access.status === 'pending' ? 'info' : 'danger') %> ms-1">
+                                                                <%= access.status==='approved' ? access.permission :
+                                                                    access.status %>
+                                                            </span>
+                                                        </div>
+                                                        <div class="d-flex gap-1">
+                                                            <% if (access.status==='pending' ) { %>
+                                                                <form action="/access/<%= access.id %>/approve"
+                                                                    method="POST" class="d-inline">
+                                                                    <button type="submit"
+                                                                        class="btn btn-sm btn-outline-success border-0"
+                                                                        title="Approve">
+                                                                        <i class="bi bi-check-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                                <form action="/access/<%= access.id %>/reject"
+                                                                    method="POST" class="d-inline">
+                                                                    <button type="submit"
+                                                                        class="btn btn-sm btn-outline-danger border-0"
+                                                                        title="Reject">
+                                                                        <i class="bi bi-x-lg"></i>
+                                                                    </button>
+                                                                </form>
+                                                                <% } else { %>
+                                                                    <form
+                                                                        action="/access/<%= access.id %>?_method=DELETE"
+                                                                        method="POST" class="d-inline"
+                                                                        onsubmit="return confirm('Revoke access for this user?')">
+                                                                        <button type="submit"
+                                                                            class="btn btn-sm btn-outline-danger border-0"
+                                                                            title="Revoke">
+                                                                            <i class="bi bi-person-x"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                    <% } %>
+                                                        </div>
+                                                    </div>
+                                                    <% }); %>
+                                            </div>
+                                            <% } else { %>
+                                                <p class="text-muted small mb-0">No users have been granted access yet
+                                                </p>
+                                                <% } %>
+                                    </div>
+                                </div>
+                                <% } %>
+
+                                    <!-- Request Access (non-owner) -->
+                                    <% if (!isOwner && !userAccess) { %>
+                                        <div class="card bg-dark border-secondary">
+                                            <div class="card-body text-center">
+                                                <p class="text-muted mb-3">You don't have access to this project yet</p>
+                                                <form action="/projects/<%= project.id %>/access/request" method="POST">
+                                                    <button type="submit" class="btn btn-outline-info w-100">
+                                                        <i class="bi bi-door-open me-1"></i> Request Access
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        <% } %>
+                        </div>
+                    </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Toggle environment variable visibility
-    document.querySelectorAll('.toggle-env-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var id = this.dataset.envId;
-            var el = document.getElementById('env-value-' + id);
-            var icon = document.getElementById('eye-icon-' + id);
-            if (el.textContent === '••••••••••••••••••••••••••••••') {
-                el.textContent = decodeURIComponent(el.dataset.envValue);
-                icon.className = 'bi bi-eye-slash';
-            } else {
-                el.textContent = '••••••••••••••••••••••••••••••';
-                icon.className = 'bi bi-eye';
-            }
+    function copyEnvValue(button, id) {
+        // Get the value from the data attribute (HTML-encoded, so we decode it)
+        const encoded = button.getAttribute('data-env-value');
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = encoded;
+        const value = textarea.value;
+
+        // Try the modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(() => {
+                showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
+            }).catch(() => {
+                fallbackCopy(value);
+            });
+        } else {
+            fallbackCopy(value);
+        }
+    }
+
+    function fallbackCopy(value) {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'top-center' });
+        } catch (e) {
+            showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
+        }
+        document.body.removeChild(textarea);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Toggle environment variable visibility
+        document.querySelectorAll('.toggle-env-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var id = this.dataset.envId;
+                var el = document.getElementById('env-value-' + id);
+                var icon = document.getElementById('eye-icon-' + id);
+                if (el.textContent === '••••••••••••••••••••••••••••••') {
+                    el.textContent = decodeURIComponent(el.dataset.envValue);
+                    icon.className = 'bi bi-eye-slash';
+                } else {
+                    el.textContent = '••••••••••••••••••••••••••••••';
+                    icon.className = 'bi bi-eye';
+                }
+            });
         });
     });
-
-function copyEnvValue(button, id) {
-    // Get the value from the data attribute (HTML-encoded, so we decode it)
-    const encoded = button.getAttribute('data-env-value');
-    const textarea = document.createElement('textarea');
-    textarea.innerHTML = encoded;
-    const value = textarea.value;
-
-    // Try the modern Clipboard API first
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(value).then(() => {
-            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
-        }).catch(() => {
-            fallbackCopy(value);
-        });
-    } else {
-        fallbackCopy(value);
-    }
-}
-
-function fallbackCopy(value) {
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-        document.execCommand('copy');
-        showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'top-center' });
-    } catch (e) {
-        showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
-    }
-    document.body.removeChild(textarea);
-}
-
 </script>
