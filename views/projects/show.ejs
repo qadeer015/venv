@@ -49,15 +49,34 @@
     </div>
 
     <div class="row g-4">
+        <!-- Database Schema Section -->
+        <% const dbSchema = envVars.find(e => e.env_key === 'DB_SCHEMA'); %>
+        <% if (dbSchema) { %>
+        <div class="col-12">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-database-fill text-primary me-2"></i>Database Schema</h5>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleDbSchema('<%= dbSchema.id %>')" title="Toggle visibility">
+                        <i class="bi bi-eye" id="eye-icon-<%= dbSchema.id %>"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <pre class="text-light bg-dark p-3 mb-0 rounded" style="max-height: 400px; overflow-y: auto;"><code id="env-value-<%= dbSchema.id %>" class="text-muted" data-value="<%= dbSchema.env_value %>">••••••••••••••••••••••••••••••</code></pre>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
         <!-- Environment Variables Section -->
         <div class="col-lg-8">
             <div class="card bg-dark border-secondary">
                 <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment Variables</h5>
-                    <span class="badge bg-warning text-dark"><%= envVars.length %></span>
+                    <% const regularEnvVars = envVars.filter(e => e.env_key !== 'DB_SCHEMA'); %>
+                    <span class="badge bg-warning text-dark"><%= regularEnvVars.length %></span>
                 </div>
                 <div class="card-body p-0">
-                    <% if (envVars.length === 0) { %>
+                    <% if (regularEnvVars.length === 0) { %>
                     <div class="text-center py-5">
                         <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
                         <p class="text-muted mt-3 mb-0">No environment variables yet</p>
@@ -74,20 +93,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <% envVars.forEach(function(env) { %>
+                                <% regularEnvVars.forEach(function(env) { %>
                                 <tr>
                                     <td class="align-middle">
                                         <code class="text-warning"><%= env.env_key %></code>
                                     </td>
                                     <td class="align-middle">
                                         <div class="d-flex align-items-center gap-2">
-                                            <code class="env-value text-muted" id="env-value-<%= env.id %>">
+                                            <code class="env-value text-muted" id="env-value-<%= env.id %>" data-value="<%= env.env_value %>">
                                                 ••••••••••••••••••••••••••••••
                                             </code>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleEnvValue(<%= env.id %>, '<%= env.env_value.replace(/'/g, "\\'").replace(/\\/g, "\\\\") %>')" title="Toggle visibility">
+                                            <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
                                                 <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue('<%= env.env_value.replace(/'/g, "\\'").replace(/\\/g, "\\\\") %>')" title="Copy value">
+                                            <button class="btn btn-sm btn-outline-secondary border-0 copy-env-btn" data-env-id="<%= env.id %>" title="Copy value">
                                                 <i class="bi bi-clipboard"></i>
                                             </button>
                                         </div>
@@ -245,11 +264,11 @@
 </div>
 
 <script>
-function toggleEnvValue(id, value) {
+function toggleDbSchema(id) {
     const el = document.getElementById('env-value-' + id);
     const icon = document.getElementById('eye-icon-' + id);
     if (el.textContent === '••••••••••••••••••••••••••••••') {
-        el.textContent = value;
+        el.textContent = el.getAttribute('data-value');
         icon.className = 'bi bi-eye-slash';
     } else {
         el.textContent = '••••••••••••••••••••••••••••••';
@@ -257,7 +276,21 @@ function toggleEnvValue(id, value) {
     }
 }
 
-function copyEnvValue(value) {
+function toggleEnvValue(id) {
+    const el = document.getElementById('env-value-' + id);
+    const icon = document.getElementById('eye-icon-' + id);
+    if (el.textContent === '••••••••••••••••••••••••••••••') {
+        el.textContent = el.getAttribute('data-value');
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        el.textContent = '••••••••••••••••••••••••••••••';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function copyEnvValue(id) {
+    const el = document.getElementById('env-value-' + id);
+    const value = el.getAttribute('data-value');
     navigator.clipboard.writeText(value).then(() => {
         // Show a brief toast notification
         const toast = document.createElement('div');
@@ -270,4 +303,18 @@ function copyEnvValue(value) {
         alert('Failed to copy. Please select and copy manually.');
     });
 }
+
+// Attach event listeners for toggle and copy buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            toggleEnvValue(this.getAttribute('data-env-id'));
+        });
+    });
+    document.querySelectorAll('.copy-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            copyEnvValue(this.getAttribute('data-env-id'));
+        });
+    });
+});
 </script>
