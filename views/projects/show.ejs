@@ -87,7 +87,7 @@
                                             <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
                                                 <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-secondary border-0 copy-env-btn" data-env-id="<%= env.id %>" title="Copy value">
+                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue(this, '<%= env.id %>')" title="Copy value" data-env-value="<%= env.env_value %>">
                                                 <i class="bi bi-clipboard"></i>
                                             </button>
                                         </div>
@@ -262,22 +262,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Copy environment variable value
-    document.querySelectorAll('.copy-env-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var id = this.dataset.envId;
-            var el = document.getElementById('env-value-' + id);
-            navigator.clipboard.writeText(decodeURIComponent(el.dataset.envValue)).then(function() {
-                var toast = document.createElement('div');
-                toast.className = 'position-fixed bottom-0 end-0 p-3';
-                toast.style.zIndex = '9999';
-                toast.innerHTML = '<div class="toast show align-items-center text-bg-success border-0"><div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>Copied to clipboard!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
-                document.body.appendChild(toast);
-                setTimeout(function() { toast.remove(); }, 2000);
-            }).catch(function() {
-                alert('Failed to copy. Please select and copy manually.');
-            });
+function copyEnvValue(button, id) {
+    // Get the value from the data attribute (HTML-encoded, so we decode it)
+    const encoded = button.getAttribute('data-env-value');
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = encoded;
+    const value = textarea.value;
+
+    // Try the modern Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(() => {
+            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
+        }).catch(() => {
+            fallbackCopy(value);
         });
-    });
-});
+    } else {
+        fallbackCopy(value);
+    }
+}
+
+function fallbackCopy(value) {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'top-center' });
+    } catch (e) {
+        showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
+    }
+    document.body.removeChild(textarea);
+}
+
 </script>
