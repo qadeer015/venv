@@ -37,6 +37,16 @@
                             <label for="description" class="form-label">Description <span class="text-muted">(optional)</span></label>
                             <textarea class="form-control bg-dark text-light border-secondary" id="description" name="description" rows="3" placeholder="A brief description of your project"></textarea>
                         </div>
+                        <div class="mb-3">
+                            <label for="dbSchema" class="form-label">Database Schema <span class="text-muted">(optional)</span></label>
+                            <textarea class="form-control bg-dark text-light border-secondary font-monospace" id="dbSchema" name="dbSchema" rows="6" placeholder="CREATE TABLE users (&#10;  id INT PRIMARY KEY,&#10;  name VARCHAR(255)&#10;);"></textarea>
+                            <div class="form-text text-muted">Paste your database schema SQL here. It will be stored as a reference for your project.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="envFile" class="form-label">Project .env File <span class="text-muted">(optional)</span></label>
+                            <textarea class="form-control bg-dark text-light border-secondary font-monospace" id="envFile" name="envFile" rows="6" placeholder="DATABASE_URL=mysql://user:pass@host/db&#10;API_KEY=your-api-key-here&#10;SECRET_KEY=your-secret-key"></textarea>
+                            <div class="form-text text-muted">Paste your .env file content (KEY=VALUE pairs). Each variable will be stored individually.</div>
+                        </div>
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-lg me-1"></i> Create Project
