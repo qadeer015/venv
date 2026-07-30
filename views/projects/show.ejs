@@ -81,13 +81,13 @@
                                     </td>
                                     <td class="align-middle">
                                         <div class="d-flex align-items-center gap-2">
-                                            <code class="env-value text-muted" id="env-value-<%= env.id %>">
+                                            <code class="env-value text-muted" id="env-value-<%= env.id %>" data-env-value="<%= encodeURIComponent(env.env_value) %>">
                                                 ••••••••••••••••••••••••••••••
                                             </code>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleEnvValue(<%= env.id %>, '<%= env.env_value.replace(/'/g, "\\'").replace(/\\/g, "\\\\") %>')" title="Toggle visibility">
+                                            <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
                                                 <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue('<%= env.env_value.replace(/'/g, "\\'").replace(/\\/g, "\\\\") %>')" title="Copy value">
+                                            <button class="btn btn-sm btn-outline-secondary border-0 copy-env-btn" data-env-id="<%= env.id %>" title="Copy value">
                                                 <i class="bi bi-clipboard"></i>
                                             </button>
                                         </div>
@@ -245,29 +245,39 @@
 </div>
 
 <script>
-function toggleEnvValue(id, value) {
-    const el = document.getElementById('env-value-' + id);
-    const icon = document.getElementById('eye-icon-' + id);
-    if (el.textContent === '••••••••••••••••••••••••••••••') {
-        el.textContent = value;
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        el.textContent = '••••••••••••••••••••••••••••••';
-        icon.className = 'bi bi-eye';
-    }
-}
-
-function copyEnvValue(value) {
-    navigator.clipboard.writeText(value).then(() => {
-        // Show a brief toast notification
-        const toast = document.createElement('div');
-        toast.className = 'position-fixed bottom-0 end-0 p-3';
-        toast.style.zIndex = '9999';
-        toast.innerHTML = '<div class="toast show align-items-center text-bg-success border-0"><div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>Copied to clipboard!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-    }).catch(() => {
-        alert('Failed to copy. Please select and copy manually.');
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle environment variable visibility
+    document.querySelectorAll('.toggle-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.dataset.envId;
+            var el = document.getElementById('env-value-' + id);
+            var icon = document.getElementById('eye-icon-' + id);
+            if (el.textContent === '••••••••••••••••••••••••••••••') {
+                el.textContent = decodeURIComponent(el.dataset.envValue);
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                el.textContent = '••••••••••••••••••••••••••••••';
+                icon.className = 'bi bi-eye';
+            }
+        });
     });
-}
+
+    // Copy environment variable value
+    document.querySelectorAll('.copy-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.dataset.envId;
+            var el = document.getElementById('env-value-' + id);
+            navigator.clipboard.writeText(decodeURIComponent(el.dataset.envValue)).then(function() {
+                var toast = document.createElement('div');
+                toast.className = 'position-fixed bottom-0 end-0 p-3';
+                toast.style.zIndex = '9999';
+                toast.innerHTML = '<div class="toast show align-items-center text-bg-success border-0"><div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>Copied to clipboard!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
+                document.body.appendChild(toast);
+                setTimeout(function() { toast.remove(); }, 2000);
+            }).catch(function() {
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        });
+    });
+});
 </script>
