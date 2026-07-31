@@ -15,6 +15,14 @@ router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/logout', authController.logout);
 
+// ── Password Reset Routes ────────────────────────────────────────────
+router.get('/auth/forgot-password', authController.showForgotPassword);
+router.post('/auth/forgot-password', authController.sendOtp);
+router.get('/auth/verify-otp', authController.showVerifyOtp);
+router.post('/auth/verify-otp', authController.verifyOtp);
+router.get('/auth/reset-password', authController.showResetPassword);
+router.post('/auth/reset-password', authController.resetPassword);
+
 // ── Onboarding Routes ────────────────────────────────────────────────
 router.get('/onboarding', onboardingController.showOnboarding);
 router.post('/onboarding', onboardingController.completeOnboarding);

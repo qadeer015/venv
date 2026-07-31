@@ -1,0 +1,167 @@
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-md-5 col-lg-4">
+            <div class="text-center mb-4">
+                <i class="bi bi-shield-lock-fill text-success" style="font-size: 3rem;"></i>
+                <h2 class="fw-bold mt-2">Verify OTP</h2>
+                <p class="text-muted">Enter the 6-digit verification code sent to <strong class="text-light"><%= email %></strong></p>
+            </div>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-danger alert-dismissible fade show" id="errorAlert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <% } %>
+
+            <!-- Countdown Timer -->
+            <div class="text-center mb-3">
+                <div id="timerDisplay" class="h3 fw-bold text-success">
+                    <i class="bi bi-clock me-2"></i><span id="timerText">01:00</span>
+                </div>
+                <p class="text-muted small" id="timerLabel">Time remaining</p>
+                <div id="expiredMessage" class="alert alert-warning d-none">
+                    <i class="bi bi-exclamation-circle me-2"></i>OTP has expired. Please request a new one.
+                </div>
+            </div>
+
+            <div class="card bg-dark border-secondary">
+                <div class="card-body p-4">
+                    <form action="/auth/verify-otp" method="POST" id="verifyOtpForm">
+                        <input type="hidden" name="email" value="<%= email %>">
+                        
+                        <div class="mb-3">
+                            <label for="otp" class="form-label">Verification Code</label>
+                            <input type="text" 
+                                   class="form-control bg-dark text-light border-secondary text-center" 
+                                   id="otp" 
+                                   name="otp" 
+                                   required 
+                                   autofocus 
+                                   autocomplete="one-time-code"
+                                   inputmode="numeric"
+                                   pattern="[0-9]{6}"
+                                   maxlength="6"
+                                   placeholder="000000"
+                                   style="font-size: 1.5rem; letter-spacing: 0.5rem; font-family: 'Courier New', monospace;">
+                            <div class="form-text text-muted text-center">Enter the 6-digit code sent to your email</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 py-2 fw-bold" id="verifyBtn">
+                            <i class="bi bi-check2-circle me-2"></i>Verify Code
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <p class="text-muted">
+                    Didn't receive the code?
+                    <a href="/auth/forgot-password" class="text-success text-decoration-none fw-semibold">
+                        <i class="bi bi-arrow-repeat me-1"></i>Request Again
+                    </a>
+                </p>
+                <p class="text-muted small">
+                    <a href="/auth/login" class="text-secondary text-decoration-none">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Login
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/utils/otp-timer.js"></script>
+<script>
+(function() {
+    const otpInput = document.getElementById('otp');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const timerText = document.getElementById('timerText');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const expiredMessage = document.getElementById('expiredMessage');
+    const timerLabel = document.getElementById('timerLabel');
+    const form = document.getElementById('verifyOtpForm');
+
+    // Restrict input to digits only
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    // Disable button on submit
+    form.addEventListener('submit', function(e) {
+        if (otpInput.value.length !== 6) {
+            e.preventDefault();
+            return;
+        }
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...';
+    });
+
+    // ── OTP Timer Initialization ─────────────────────────────────────
+    const email = '<%= email %>';
+    const serverExpiresAt = <%= typeof otpExpiresAt !== 'undefined' && otpExpiresAt ? otpExpiresAt : 'null' %>;
+
+    // Determine the expiry timestamp to use:
+    // 1. If server provides a valid expiry, use it (server is source of truth)
+    // 2. If server doesn't provide one, check localStorage for existing timer
+    // 3. If neither, initialize with expired state
+    let expiresAt = null;
+
+    if (serverExpiresAt !== null) {
+        // Server has a valid OTP - use its expiry
+        expiresAt = serverExpiresAt;
+        // Store it in localStorage for page refresh recovery
+        localStorage.setItem('otp_expires_at_' + btoa(email), expiresAt.toString());
+    } else {
+        // Server says OTP expired - check localStorage as backup
+        const stored = localStorage.getItem('otp_expires_at_' + btoa(email));
+        if (stored) {
+            const parsed = parseInt(stored, 10);
+            if (parsed > Date.now()) {
+                // localStorage has a still-valid expiry (server may have restarted)
+                expiresAt = parsed;
+            } else {
+                // localStorage also expired
+                localStorage.removeItem('otp_expires_at_' + btoa(email));
+            }
+        }
+    }
+
+    if (expiresAt !== null) {
+        // Initialize timer with the determined expiry
+        OTPTimer.init(email, expiresAt, false);
+    } else {
+        // No valid expiry - show expired state immediately
+        timerDisplay.classList.add('d-none');
+        timerLabel.classList.add('d-none');
+        expiredMessage.classList.remove('d-none');
+        otpInput.disabled = true;
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Expired';
+    }
+
+    // Update timer display on each tick
+    OTPTimer.onTick(function(seconds) {
+        timerText.textContent = OTPTimer.formatTime(seconds);
+        
+        // Change color when less than 10 seconds
+        if (seconds <= 10) {
+            timerText.className = 'text-danger';
+        } else {
+            timerText.className = 'text-success';
+        }
+    });
+
+    // Handle timer expiry
+    OTPTimer.onExpire(function() {
+        timerDisplay.classList.add('d-none');
+        timerLabel.classList.add('d-none');
+        expiredMessage.classList.remove('d-none');
+        
+        // Disable OTP input and verify button
+        otpInput.disabled = true;
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Expired';
+    });
+})();
+</script>
