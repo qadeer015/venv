@@ -148,36 +148,54 @@
                                 </div>
                             </div>
 
-                            <!-- Add Environment Variable Form -->
+                            <!-- Add Environment Variables Form (Bulk) -->
                             <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
                                 <div class="card bg-dark border-secondary mt-4">
-                                    <div class="card-header bg-dark border-secondary">
+                                    <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
-                                            Environment Variable</h5>
+                                            Environment Variables</h5>
+                                        <span class="badge bg-success" id="env-count-badge">0</span>
                                     </div>
                                     <div class="card-body p-4">
-                                        <form action="/projects/<%= project.id %>/environments" method="POST">
-                                            <div class="row g-3">
-                                                <div class="col-md-5">
-                                                    <label for="envKey" class="form-label">Key</label>
-                                                    <input type="text"
-                                                        class="form-control bg-dark text-light border-secondary font-monospace"
-                                                        id="envKey" name="envKey" required placeholder="DATABASE_URL"
-                                                        pattern="[A-Z_][A-Z0-9_]*"
-                                                        title="Uppercase letters, numbers, and underscores">
+                                        <form id="envVarsForm" action="/projects/<%= project.id %>/environments/bulk" method="POST">
+                                            <div id="envVarsContainer">
+                                                <!-- First row -->
+                                                <div class="env-var-row row g-3 mb-3">
+                                                    <div class="col-md-5">
+                                                        <label class="form-label">Key</label>
+                                                        <input type="text"
+                                                            class="form-control bg-dark text-light border-secondary font-monospace env-key"
+                                                            name="envVars[0][key]" required placeholder="DATABASE_URL"
+                                                            pattern="[A-Z_][A-Z0-9_]*"
+                                                            title="Uppercase letters, numbers, and underscores">
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <label class="form-label">Value</label>
+                                                        <input type="text"
+                                                            class="form-control bg-dark text-light border-secondary font-monospace env-value"
+                                                            name="envVars[0][value]"
+                                                            placeholder="mysql://user:pass@host/db">
+                                                    </div>
+                                                    <div class="col-md-2 d-flex align-items-end">
+                                                        <button type="button" class="btn btn-outline-danger w-100 remove-env-row" disabled>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div class="col-md-5">
-                                                    <label for="envValue" class="form-label">Value</label>
-                                                    <input type="text"
-                                                        class="form-control bg-dark text-light border-secondary font-monospace"
-                                                        id="envValue" name="envValue"
-                                                        placeholder="mysql://user:pass@host/db">
-                                                </div>
-                                                <div class="col-md-2 d-flex align-items-end">
-                                                    <button type="submit" class="btn btn-success w-100">
+                                            </div>
+                                            <div class="d-flex justify-content-between mt-3">
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" id="addEnvRow" class="btn btn-outline-success">
                                                         <i class="bi bi-plus-lg"></i> Add
                                                     </button>
+                                                    <button type="button" id="importEnvBtn" class="btn btn-outline-info">
+                                                        <i class="bi bi-upload"></i> Import .env
+                                                    </button>
+                                                    <input type="file" id="envFileInput" accept=".env,.txt" style="display:none">
                                                 </div>
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="bi bi-save"></i> Save All
+                                                </button>
                                             </div>
                                         </form>
                                     </div>
@@ -358,6 +376,108 @@
         document.body.removeChild(textarea);
     }
 
+    // ── Dynamic Environment Variables Form ─────────────────────────
+    function updateEnvRowIndices() {
+        const rows = document.querySelectorAll('#envVarsContainer .env-var-row');
+        rows.forEach(function(row, index) {
+            const keyInput = row.querySelector('.env-key');
+            const valueInput = row.querySelector('.env-value');
+            const removeBtn = row.querySelector('.remove-env-row');
+            if (keyInput) keyInput.name = 'envVars[' + index + '][key]';
+            if (valueInput) valueInput.name = 'envVars[' + index + '][value]';
+            if (removeBtn) removeBtn.disabled = (rows.length <= 1);
+        });
+        const badge = document.getElementById('env-count-badge');
+        if (badge) badge.textContent = rows.length;
+    }
+
+    function addEnvRow(keyValue, valueValue) {
+        const container = document.getElementById('envVarsContainer');
+        const firstRow = container.querySelector('.env-var-row');
+        const newRow = firstRow.cloneNode(true);
+        // Clear inputs
+        const keyInput = newRow.querySelector('.env-key');
+        const valueInput = newRow.querySelector('.env-value');
+        if (keyValue) {
+            keyInput.value = keyValue;
+        } else {
+            keyInput.value = '';
+        }
+        if (valueValue) {
+            valueInput.value = valueValue;
+        } else {
+            valueInput.value = '';
+        }
+        // Re-attach paste handlers (to avoid duplicated listeners from cloneNode)
+        keyInput.removeEventListener('paste', handleEnvPaste);
+        keyInput.addEventListener('paste', handleEnvPaste);
+        valueInput.removeEventListener('paste', handleEnvPaste);
+        valueInput.addEventListener('paste', handleEnvPaste);
+        // Enable remove button (will be toggled by updateEnvRowIndices)
+        const removeBtn = newRow.querySelector('.remove-env-row');
+        removeBtn.disabled = false;
+        removeBtn.addEventListener('click', function() {
+            newRow.remove();
+            updateEnvRowIndices();
+        });
+        container.appendChild(newRow);
+        updateEnvRowIndices();
+    }
+
+    function handleEnvPaste(e) {
+        // Get raw clipboard text before browser inserts it
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        if (!pastedText) return;
+
+        const lines = pastedText.split('\n');
+        var pairs = [];
+
+        lines.forEach(function(line) {
+            line = line.trim();
+            if (!line) return;
+            var eqIndex = line.indexOf('=');
+            if (eqIndex > 0) {
+                var key = line.substring(0, eqIndex).trim();
+                var val = line.substring(eqIndex + 1).trim();
+                if (key) {
+                    pairs.push({ key: key, value: val });
+                }
+            }
+        });
+
+        if (pairs.length > 0) {
+            // Prevent default paste so the browser doesn't insert raw text
+            e.preventDefault();
+
+            if (pairs.length === 1) {
+                // Single pair — fill the current row
+                var row = e.target.closest('.env-var-row');
+                if (row) {
+                    var keyInput = row.querySelector('.env-key');
+                    var valueInput = row.querySelector('.env-value');
+                    if (keyInput) keyInput.value = pairs[0].key;
+                    if (valueInput) valueInput.value = pairs[0].value;
+                }
+            } else {
+                // Multiple pairs — fill current row with the first pair,
+                // then add new rows for the remaining pairs
+                pairs.forEach(function(pair, index) {
+                    if (index === 0) {
+                        var row = e.target.closest('.env-var-row');
+                        if (row) {
+                            var keyInput = row.querySelector('.env-key');
+                            var valueInput = row.querySelector('.env-value');
+                            if (keyInput) keyInput.value = pair.key;
+                            if (valueInput) valueInput.value = pair.value;
+                        }
+                    } else {
+                        addEnvRow(pair.key, pair.value);
+                    }
+                });
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Toggle environment variable visibility
         document.querySelectorAll('.toggle-env-btn').forEach(function (btn) {
@@ -374,5 +494,120 @@
                 }
             });
         });
+
+        // ── Initialize environment variables form ──
+        const container = document.getElementById('envVarsContainer');
+        if (container) {
+            // Setup remove buttons for existing rows
+            container.querySelectorAll('.remove-env-row').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const row = btn.closest('.env-var-row');
+                    row.remove();
+                    updateEnvRowIndices();
+                });
+            });
+            // Setup paste handler on both key and value inputs
+            container.querySelectorAll('.env-key, .env-value').forEach(function(input) {
+                input.addEventListener('paste', handleEnvPaste);
+            });
+            updateEnvRowIndices();
+        }
+
+        // Add row button
+        const addBtn = document.getElementById('addEnvRow');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                addEnvRow('', '');
+            });
+        }
+
+        // ── Import .env file ──
+        const importBtn = document.getElementById('importEnvBtn');
+        const fileInput = document.getElementById('envFileInput');
+        if (importBtn && fileInput) {
+            importBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+
+                var reader = new FileReader();
+                reader.onload = function(loadEvent) {
+                    var content = loadEvent.target.result;
+                    var lines = content.split('\n');
+                    var pairs = [];
+
+                    lines.forEach(function(line) {
+                        line = line.trim();
+                        // Skip empty lines and comments
+                        if (!line || line.startsWith('#')) return;
+                        var eqIndex = line.indexOf('=');
+                        if (eqIndex > 0) {
+                            var key = line.substring(0, eqIndex).trim();
+                            var val = line.substring(eqIndex + 1).trim();
+                            // Remove surrounding quotes from value if present
+                            if ((val.startsWith('"') && val.endsWith('"')) ||
+                                (val.startsWith("'") && val.endsWith("'"))) {
+                                val = val.substring(1, val.length - 1);
+                            }
+                            if (key) {
+                                pairs.push({ key: key, value: val });
+                            }
+                        }
+                    });
+
+                    if (pairs.length > 0) {
+                        // Replace all existing rows with the first pair
+                        var rows = container.querySelectorAll('.env-var-row');
+                        // Fill first row with first pair
+                        var firstRow = rows[0];
+                        var firstKeyInput = firstRow.querySelector('.env-key');
+                        var firstValueInput = firstRow.querySelector('.env-value');
+                        if (firstKeyInput) firstKeyInput.value = pairs[0].key;
+                        if (firstValueInput) firstValueInput.value = pairs[0].value;
+
+                        // Remove extra existing rows (keep only the first)
+                        for (var i = 1; i < rows.length; i++) {
+                            rows[i].remove();
+                        }
+
+                        // Add rows for remaining pairs
+                        for (var j = 1; j < pairs.length; j++) {
+                            addEnvRow(pairs[j].key, pairs[j].value);
+                        }
+
+                        updateEnvRowIndices();
+                        showToast('Imported ' + pairs.length + ' environment variables from ' + file.name, { type: 'success', duration: 3000, position: 'bottom-end' });
+                    } else {
+                        showToast('No valid KEY=VALUE pairs found in the file.', { type: 'warning', duration: 3000, position: 'bottom-end' });
+                    }
+
+                    // Reset file input so same file can be re-imported
+                    fileInput.value = '';
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // Form submit - validate at least one key is filled
+        const form = document.getElementById('envVarsForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const rows = container.querySelectorAll('.env-var-row');
+                var hasValid = false;
+                rows.forEach(function(row) {
+                    const keyInput = row.querySelector('.env-key');
+                    if (keyInput && keyInput.value.trim()) {
+                        hasValid = true;
+                    }
+                });
+                if (!hasValid) {
+                    e.preventDefault();
+                    showToast('Please fill in at least one environment variable key.', { type: 'danger', duration: 3000, position: 'bottom-end' });
+                }
+            });
+        }
     });
 </script>
