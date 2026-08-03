@@ -1,7 +1,8 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/dashboard" class="text-success text-decoration-none">Dashboard</a>
+            <li class="breadcrumb-item"><a href="/<%= isOwner ? user.username : owner.username %>"
+                    class="text-success text-decoration-none"><%=  isOwner ? user.username : owner.username %></a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
                 <%= project.name %>
@@ -13,13 +14,13 @@
         <div class="alert alert-danger">
             <%= error %>
         </div>
-    <% } %>
+        <% } %>
 
-    <% if (typeof success !=='undefined' && success) { %>
-        <div class="alert alert-success">
-            <%= success %>
-        </div>
-    <% } %>
+            <% if (typeof success !=='undefined' && success) { %>
+                <div class="alert alert-success">
+                    <%= success %>
+                </div>
+                <% } %>
 
                     <!-- Project Header -->
                     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
@@ -27,10 +28,15 @@
                             <h1 class="fw-bold mb-1">
                                 <%= project.name %>
                             </h1>
-                            
-                        </div>
-                        <div class="d-flex gap-2">
-                            <!-- TODO: dropdown for change environment -->
+                            <% if (!isOwner) { %>
+                                <p class="text-muted mb-0">
+                                    Shared by
+                                    <a href="/<%= owner.name %>/<%= project.name %>"
+                                        class="text-primary border-0 btn-sm">
+                                        <%= owner.username %>/<%= project.name %>
+                                    </a>
+                                </p>
+                            <% } %>
                         </div>
                     </div>
 
@@ -60,7 +66,8 @@
                                                         <tr>
                                                             <th class="border-secondary" style="width: 25%;">Key</th>
                                                             <th class="border-secondary">Value</th>
-                                                            <th class="border-secondary" style="width: 12%;">Environment</th>
+                                                            <th class="border-secondary" style="width: 12%;">Environment
+                                                            </th>
                                                             <th class="border-secondary" style="width: 20%;">Note</th>
                                                             <th class="border-secondary text-end" style="width: 80px;">
                                                                 Actions</th>
@@ -96,25 +103,33 @@
                                                                     </div>
                                                                 </td>
                                                                 <td class="align-middle">
-                                                                    <% var envName = env.environment || 'development'; %>
-                                                                    <% var envClass = envName === 'production' ? 'danger' : (envName === 'staging' ? 'warning' : 'info'); %>
-                                                                    <span class="badge bg-<%= envClass %> text-<%= envName === 'staging' ? 'dark' : 'light' %>">
-                                                                        <i class="bi bi-<%= envName === 'production' ? 'rocket-takeoff' : (envName === 'staging' ? 'gear' : 'bug') %> me-1"></i>
-                                                                        <%= envName.charAt(0).toUpperCase() + envName.slice(1) %>
-                                                                    </span>
+                                                                    <% var envName=env.environment || 'development' ; %>
+                                                                        <% var envClass=envName==='production'
+                                                                            ? 'danger' : (envName==='staging'
+                                                                            ? 'warning' : 'info' ); %>
+                                                                            <span
+                                                                                class="badge bg-<%= envClass %> text-<%= envName === 'staging' ? 'dark' : 'light' %>">
+                                                                                <i
+                                                                                    class="bi bi-<%= envName === 'production' ? 'rocket-takeoff' : (envName === 'staging' ? 'gear' : 'bug') %> me-1"></i>
+                                                                                <%= envName.charAt(0).toUpperCase() +
+                                                                                    envName.slice(1) %>
+                                                                            </span>
                                                                 </td>
                                                                 <td class="align-middle">
                                                                     <% if (env.note) { %>
-                                                                        <small class="text-muted"><%= env.note %></small>
-                                                                    <% } else { %>
-                                                                        <small class="text-muted opacity-50">—</small>
-                                                                    <% } %>
+                                                                        <small class="text-muted">
+                                                                            <%= env.note %>
+                                                                        </small>
+                                                                        <% } else { %>
+                                                                            <small
+                                                                                class="text-muted opacity-50">—</small>
+                                                                            <% } %>
                                                                 </td>
                                                                 <td class="align-middle text-end">
                                                                     <% if (isOwner || (userAccess &&
                                                                         userAccess.permission==='edit' )) { %>
                                                                         <form
-                                                                            action="/projects/<%= project.id %>/environments/<%= env.id %>?_method=DELETE"
+                                                                            action="/<%= owner.username %>/<%= project.slug %>/environments/<%= env.id %>?_method=DELETE"
                                                                             method="POST" class="d-inline"
                                                                             onsubmit="return confirm('Delete this environment variable?')">
                                                                             <button type="submit"
@@ -137,13 +152,16 @@
                             <!-- Add Environment Variables Form (Bulk) -->
                             <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
                                 <div class="card bg-dark border-secondary mt-4">
-                                    <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                                    <div
+                                        class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
                                             Environment Variables</h5>
                                         <span class="badge bg-success" id="env-count-badge">0</span>
                                     </div>
                                     <div class="card-body p-4">
-                                        <form id="envVarsForm" action="/projects/<%= project.id %>/environments/bulk" method="POST">
+                                        <form id="envVarsForm"
+                                            action="/<%= owner.username %>/<%= project.slug %>/environments/bulk"
+                                            method="POST">
                                             <div id="envVarsContainer">
                                                 <!-- First row -->
                                                 <div class="env-var-row mb-4">
@@ -152,12 +170,14 @@
                                                         <div class="position-relative">
                                                             <input type="text"
                                                                 class="form-control bg-dark text-light border-secondary font-monospace env-key"
-                                                                name="envVars[0][key]" required placeholder="DATABASE_URL"
-                                                                pattern="[A-Z_][A-Z0-9_]*"
+                                                                name="envVars[0][key]" required
+                                                                placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*"
                                                                 title="Uppercase letters, numbers, and underscores">
-                                                                <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2" disabled>
-                                                                    <i class="bi bi-trash"></i>
-                                                                </button>
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2"
+                                                                disabled>
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                     <div class="mb-2">
@@ -167,7 +187,9 @@
                                                                 class="form-control bg-dark text-light border-secondary font-monospace env-value"
                                                                 name="envVars[0][value]"
                                                                 placeholder="mysql://user:pass@host/db">
-                                                            <button type="button" class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn" data-env-id="">
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn"
+                                                                data-env-id="">
                                                                 <i class="bi bi-eye"></i>
                                                             </button>
                                                         </div>
@@ -183,7 +205,8 @@
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label class="form-label text-muted small">Note <span class="text-muted">(Optional)</span></label>
+                                                        <label class="form-label text-muted small">Note <span
+                                                                class="text-muted">(Optional)</span></label>
                                                         <input type="text"
                                                             class="form-control bg-dark text-light border-secondary env-note"
                                                             name="envVars[0][note]"
@@ -195,10 +218,12 @@
                                                 <button type="button" id="addEnvRow" class="btn btn-outline-success">
                                                     <i class="bi bi-plus-lg"></i> Add Another
                                                 </button>
-                                                <button type="button" id="importEnvBtn" class="btn btn-outline-info ms-2">
+                                                <button type="button" id="importEnvBtn"
+                                                    class="btn btn-outline-info ms-2">
                                                     <i class="bi bi-upload"></i> Import .env
                                                 </button>
-                                                <input type="file" id="envFileInput" accept=".env,.txt" style="display:none">
+                                                <input type="file" id="envFileInput" accept=".env,.txt"
+                                                    style="display:none">
                                             </div>
                                             <div class="mt-3 text-end">
                                                 <button type="submit" class="btn btn-success">
@@ -219,67 +244,78 @@
                                     <div class="d-flex align-items-center justify-content-between">
                                         <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h5>
                                         <% if (isOwner) { %>
-                                            <a href="/projects/<%= project.id %>/settings" class="btn btn-outline-secondary border-0 btn-sm">
+                                            <a href="/<%= owner.username %>/<%= project.slug %>/settings"
+                                                class="btn btn-outline-secondary border-0 btn-sm">
                                                 <i class="bi bi-gear"></i>
                                             </a>
-                                        <% } else { %>
-                                            <span class="badge bg-info fs-6 align-self-center">
-                                                <i class="bi bi-eye me-1"></i>
-                                                <%= userAccess.permission==='edit' ? 'Editor' : 'Viewer' %>
-                                            </span>
-                                        <% } %>
+                                            <% } %>
                                     </div>
                                 </div>
                                 <div class="card-body">
                                     <dl class="mb-0">
                                         <div class="mb-3">
-                                            <% if (project.description) { %>
-                                                <small>
-                                                    <%= project.description || 'No description provided' %>
-                                                </small>
-                                            <% } %>
+                                            <small>
+                                                <%= project.description || 'No description provided' %>
+                                            </small>
                                         </div>
                                         <div class="mb-1">
-                                            <dt class="text-muted small">GitHub</dt>
-                                            <% if (project.github_url) { %>
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-gear-fill me-1"></i>
+                                                <div class="me-2 text-muted small">
+                                                    <%= envVars.length %> credentials
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-1">
+                                            <div class="d-flex align-items-center">
                                                 <i class="bi bi-github me-1"></i>
-                                                <a href="<%= project.github_url %>" target="_blank" class="text-muted text-decoration-none">
-                                                    <%= project.github_url?.replace('https://github.com/', '' ) || 'No GitHub URL provided' %>
-                                                </a>
-                                            <% } %>
+                                                <div class="me-2 text-muted small">
+                                                    <% if (project.github_url) { %>
+                                                        <a href="<%= project.github_url %>" target="_blank"
+                                                            class="text-muted text-decoration-none">
+                                                            <%= project.github_url?.replace('https://github.com/', '' )
+                                                                %>
+                                                        </a>
+                                                        <% } else { %>
+                                                            <span class="text-muted">No GitHub URL provided</span>
+                                                            <% } %>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="mb-1">
-                                            <dt class="text-muted small">Domain</dt>
-                                            <% if (project.domain) { %>
-                                                <i class="bi bi-globe me-1"></i>
-                                                <a href="<%= project.domain %>" target="_blank" class="text-muted text-decoration-none">
-                                                    <%= project.domain?.replace('https://', '' ) || 'No domain provided' %>
-                                                </a>
-                                            <% } %>
-                                        </div>
-                                    </dl>
-                                </div>
-                            </div>
 
-                            <!-- Project Info -->
-                            <div class="card bg-dark border-secondary mb-4">
-                                <div class="card-header bg-dark border-secondary">
-                                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Project Info</h5>
-                                </div>
-                                <div class="card-body">
-                                    <dl class="mb-0">
-                                        <dt class="text-muted small">Created</dt>
-                                        <dd>
-                                            <%= new Date(project.created_at).toLocaleString() %>
-                                        </dd>
-                                        <dt class="text-muted small">Updated</dt>
-                                        <dd>
-                                            <%= new Date(project.updated_at).toLocaleString() %>
-                                        </dd>
-                                        <dt class="text-muted small">Environment Variables</dt>
-                                        <dd>
-                                            <%= envVars.length %>
-                                        </dd>
+                                        <div class="mb-1">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-globe me-1"></i>
+                                                <div class="me-2 text-muted small">
+                                                    <% if (project.domain) { %>
+                                                        <a href="<%= project.domain %>" target="_blank"
+                                                            class="text-muted text-decoration-none">
+                                                            <%= project.domain?.replace('https://', '' ) %>
+                                                        </a>
+                                                        <% } else { %>
+                                                            <span class="text-muted">No domain provided</span>
+                                                            <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-1 mt-2">
+                                            <dt class="text-muted small">Timestamp</dt>
+                                            <div class="mt-1">
+                                                <dd class="mb-1 text-muted small">
+                                                    Created
+                                                    <span class="text-primary">
+                                                        <%= new Date(project.created_at).toLocaleString() %>
+                                                    </span>
+                                                </dd>
+                                                <dd class="mb-1 text-muted small">
+                                                    Last updated
+                                                    <span class="text-primary text-decoration-underline">
+                                                        <%= new Date(project.updated_at).toLocaleString() %>
+                                                    </span>
+                                                </dd>
+                                            </div>
+                                        </div>
                                     </dl>
                                 </div>
                             </div>
@@ -287,14 +323,18 @@
                             <!-- People with Access -->
                             <div class="card bg-dark border-secondary mb-4">
                                 <div class="card-header bg-dark border-secondary">
-                                    <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>People with Access</h5>
+                                    <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>People with Access
+                                    </h5>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="list-group list-group-flush">
                                         <!-- Owner -->
-                                        <div class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
+                                        <div
+                                            class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
                                             <div>
-                                                <small><%= owner.name || owner.email %></small>
+                                                <small>
+                                                    <%= owner.name || owner.email %>
+                                                </small>
                                                 <span class="badge bg-warning text-dark ms-1">Owner</span>
                                             </div>
                                             <small class="text-muted">
@@ -302,56 +342,63 @@
                                             </small>
                                         </div>
                                         <!-- Access List -->
-                                        <% if (accessList.length > 0) { %>
+                                        <% if (accessList.length> 0) { %>
                                             <% accessList.forEach(function(access) { %>
-                                                <div class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
+                                                <div
+                                                    class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
                                                     <div>
-                                                        <small><%= access.user_name || access.email %></small>
-                                                        <% if (access.status === 'approved') { %>
-                                                            <span class="badge bg-<%= access.permission === 'edit' ? 'warning' : 'secondary' %> ms-1">
-                                                                <%= access.permission === 'edit' ? 'Edit' : 'View' %>
+                                                        <small>
+                                                            <%= access.user_name || access.email %>
+                                                        </small>
+                                                        <% if (access.status==='approved' ) { %>
+                                                            <span
+                                                                class="badge bg-<%= access.permission === 'edit' ? 'warning' : 'secondary' %> ms-1">
+                                                                <%= access.permission==='edit' ? 'Edit' : 'View' %>
                                                             </span>
-                                                        <% } else { %>
-                                                            <span class="badge bg-<%= access.status === 'pending' ? 'info' : 'danger' %> ms-1">
-                                                                <%= access.status %>
-                                                            </span>
-                                                        <% } %>
+                                                            <% } else { %>
+                                                                <span
+                                                                    class="badge bg-<%= access.status === 'pending' ? 'info' : 'danger' %> ms-1">
+                                                                    <%= access.status %>
+                                                                </span>
+                                                                <% } %>
                                                     </div>
                                                     <small class="text-muted">
-                                                        <% if (access.status === 'approved') { %>
+                                                        <% if (access.status==='approved' ) { %>
                                                             <i class="bi bi-check-circle me-1"></i>Approved
-                                                        <% } else if (access.status === 'pending') { %>
-                                                            <i class="bi bi-hourglass me-1"></i>Pending
-                                                        <% } else { %>
-                                                            <i class="bi bi-x-circle me-1"></i>Rejected
-                                                        <% } %>
+                                                            <% } else if (access.status==='pending' ) { %>
+                                                                <i class="bi bi-hourglass me-1"></i>Pending
+                                                                <% } else { %>
+                                                                    <i class="bi bi-x-circle me-1"></i>Rejected
+                                                                    <% } %>
                                                     </small>
                                                 </div>
-                                            <% }); %>
-                                        <% } %>
+                                                <% }); %>
+                                                    <% } %>
                                     </div>
                                 </div>
-                                <% if (isOwner && accessList.length > 0) { %>
+                                <% if (isOwner && accessList.length> 0) { %>
                                     <div class="card-footer bg-dark border-secondary text-center">
-                                        <a href="/projects/<%= project.id %>/settings" class="btn btn-outline-info btn-sm">
+                                        <a href="/<%= owner.username %>/<%= project.slug %>/settings"
+                                            class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-gear me-1"></i> Manage Access
                                         </a>
                                     </div>
-                                <% } %>
+                                    <% } %>
                             </div>
                             <!-- Request Access (non-owner) -->
                             <% if (!isOwner && !userAccess) { %>
                                 <div class="card bg-dark border-secondary">
                                     <div class="card-body text-center">
                                         <p class="text-muted mb-3">You don't have access to this project yet</p>
-                                        <form action="/projects/<%= project.id %>/access/request" method="POST">
+                                        <form action="/<%= owner.username %>/<%= project.slug %>/access/request"
+                                            method="POST">
                                             <button type="submit" class="btn btn-outline-info w-100">
                                                 <i class="bi bi-door-open me-1"></i> Request Access
                                             </button>
                                         </form>
                                     </div>
                                 </div>
-                            <% } %>
+                                <% } %>
                         </div>
                     </div>
 </div>
@@ -396,7 +443,7 @@
     // ── Dynamic Environment Variables Form ─────────────────────────
     function updateEnvRowIndices() {
         const rows = document.querySelectorAll('#envVarsContainer .env-var-row');
-        rows.forEach(function(row, index) {
+        rows.forEach(function (row, index) {
             const keyInput = row.querySelector('.env-key');
             const valueInput = row.querySelector('.env-value');
             const envSelect = row.querySelector('.env-environment');
@@ -442,7 +489,7 @@
         // Enable remove button (will be toggled by updateEnvRowIndices)
         const removeBtn = newRow.querySelector('.remove-env-row');
         removeBtn.disabled = false;
-        removeBtn.addEventListener('click', function() {
+        removeBtn.addEventListener('click', function () {
             newRow.remove();
             updateEnvRowIndices();
         });
@@ -458,7 +505,7 @@
         const lines = pastedText.split('\n');
         var pairs = [];
 
-        lines.forEach(function(line) {
+        lines.forEach(function (line) {
             line = line.trim();
             if (!line) return;
             var eqIndex = line.indexOf('=');
@@ -487,7 +534,7 @@
             } else {
                 // Multiple pairs — fill current row with the first pair,
                 // then add new rows for the remaining pairs
-                pairs.forEach(function(pair, index) {
+                pairs.forEach(function (pair, index) {
                     if (index === 0) {
                         var row = e.target.closest('.env-var-row');
                         if (row) {
@@ -525,15 +572,15 @@
         const container = document.getElementById('envVarsContainer');
         if (container) {
             // Setup remove buttons for existing rows
-            container.querySelectorAll('.remove-env-row').forEach(function(btn) {
-                btn.addEventListener('click', function() {
+            container.querySelectorAll('.remove-env-row').forEach(function (btn) {
+                btn.addEventListener('click', function () {
                     const row = btn.closest('.env-var-row');
                     row.remove();
                     updateEnvRowIndices();
                 });
             });
             // Setup paste handler on both key and value inputs
-            container.querySelectorAll('.env-key, .env-value').forEach(function(input) {
+            container.querySelectorAll('.env-key, .env-value').forEach(function (input) {
                 input.addEventListener('paste', handleEnvPaste);
             });
             updateEnvRowIndices();
@@ -542,7 +589,7 @@
         // Add row button
         const addBtn = document.getElementById('addEnvRow');
         if (addBtn) {
-            addBtn.addEventListener('click', function() {
+            addBtn.addEventListener('click', function () {
                 addEnvRow('', '');
             });
         }
@@ -551,21 +598,21 @@
         const importBtn = document.getElementById('importEnvBtn');
         const fileInput = document.getElementById('envFileInput');
         if (importBtn && fileInput) {
-            importBtn.addEventListener('click', function() {
+            importBtn.addEventListener('click', function () {
                 fileInput.click();
             });
 
-            fileInput.addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function (e) {
                 var file = e.target.files[0];
                 if (!file) return;
 
                 var reader = new FileReader();
-                reader.onload = function(loadEvent) {
+                reader.onload = function (loadEvent) {
                     var content = loadEvent.target.result;
                     var lines = content.split('\n');
                     var pairs = [];
 
-                    lines.forEach(function(line) {
+                    lines.forEach(function (line) {
                         line = line.trim();
                         // Skip empty lines and comments
                         if (!line || line.startsWith('#')) return;
@@ -620,10 +667,10 @@
         // Form submit - validate at least one key is filled
         const form = document.getElementById('envVarsForm');
         if (form) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function (e) {
                 const rows = container.querySelectorAll('.env-var-row');
                 var hasValid = false;
-                rows.forEach(function(row) {
+                rows.forEach(function (row) {
                     const keyInput = row.querySelector('.env-key');
                     if (keyInput && keyInput.value.trim()) {
                         hasValid = true;

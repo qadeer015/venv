@@ -5,7 +5,7 @@
             <h1 class="fw-bold mb-1">Dashboard</h1>
             <p class="text-muted mb-0">Welcome back, <%= user.email %></p>
         </div>
-        <a href="/projects/create" class="btn btn-success">
+        <a href="/new" class="btn btn-success">
             <i class="bi bi-plus-lg me-1"></i> New Project
         </a>
     </div>
@@ -34,14 +34,14 @@
                     <div class="text-center py-5">
                         <i class="bi bi-folder-plus text-muted" style="font-size: 3rem;"></i>
                         <p class="text-muted mt-3 mb-3">You haven't created any projects yet</p>
-                        <a href="/projects/create" class="btn btn-outline-success">
+                        <a href="/new" class="btn btn-outline-success">
                             <i class="bi bi-plus-lg me-1"></i> Create Your First Project
                         </a>
                     </div>
                     <% } else { %>
                     <div class="list-group list-group-flush">
                         <% ownedProjects.forEach(function(project) { %>
-                        <a href="/projects/<%= project.id %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
+                        <a href="/<%= user.username %>/<%= project.slug %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-1 fw-semibold"><%= project.name %></h6>
                                 <small class="text-muted">
@@ -73,7 +73,7 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         <% sharedProjects.forEach(function(project) { %>
-                        <a href="/projects/<%= project.id %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
+                        <a href="/<%= project.owner_username %>/<%= project.slug %>" class="list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-1 fw-semibold"><%= project.name %></h6>
                                 <small class="text-muted">

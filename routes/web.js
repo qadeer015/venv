@@ -19,26 +19,26 @@ router.post('/auth/logout', authController.logout);
 router.get('/onboarding', onboardingController.showOnboarding);
 router.post('/onboarding', onboardingController.completeOnboarding);
 
-// ── Dashboard ────────────────────────────────────────────────────────
-router.get('/dashboard', projectController.dashboard);
-
 // ── Project Routes ───────────────────────────────────────────────────
-router.get('/projects/create', projectController.showCreate);
+router.get('/new', projectController.showCreate);
 router.post('/projects', projectController.create);
-router.get('/projects/:id', projectController.show);
-router.get('/projects/:id/edit', projectController.showEdit);
-router.get('/projects/:id/settings', projectController.showSettings);
-router.put('/projects/:id', projectController.update);
-router.delete('/projects/:id', projectController.delete);
+router.get('/:username/:projectSlug', projectController.show);
+router.get('/:username/:projectSlug/edit', projectController.showEdit);
+router.get('/:username/:projectSlug/settings', projectController.showSettings);
+router.put('/:username/:projectSlug', projectController.update);
+router.delete('/:username/:projectSlug', projectController.delete);
+
+// ── Dashboard ────────────────────────────────────────────────────────
+router.get('/:username', projectController.dashboard);
 
 // ── Environment Variable Routes ──────────────────────────────────────
-router.post('/projects/:projectId/environments', environmentController.upsert);
-router.post('/projects/:projectId/environments/bulk', environmentController.bulkUpsert);
-router.delete('/projects/:projectId/environments/:envId', environmentController.delete);
+router.post('/:username/:projectSlug/environments', environmentController.upsert);
+router.post('/:username/:projectSlug/environments/bulk', environmentController.bulkUpsert);
+router.delete('/:username/:projectSlug/environments/:envId', environmentController.delete);
 
 // ── Access Control Routes ────────────────────────────────────────────
-router.post('/projects/:projectId/access/request', accessController.requestAccess);
-router.post('/projects/:projectId/access/grant', accessController.grantAccess);
+router.post('/:username/:projectSlug/access/request', accessController.requestAccess);
+router.post('/:username/:projectSlug/access/grant', accessController.grantAccess);
 router.post('/access/:accessId/approve', accessController.approveAccess);
 router.post('/access/:accessId/reject', accessController.rejectAccess);
 router.delete('/access/:accessId', accessController.revokeAccess);
@@ -47,7 +47,7 @@ router.get('/api/users/search', accessController.searchUsers);
 // ── Root redirect ────────────────────────────────────────────────────
 router.get('/', (req, res) => {
     if (req.user) {
-        return res.redirect('/dashboard');
+        return res.redirect(`/${req.user.username}`);
     }
     res.redirect('/auth/login');
 });

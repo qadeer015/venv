@@ -17,8 +17,12 @@ const projectController = {
                 ProjectAccess.findPendingByOwner(req.user.id)
             ]);
 
+            // Fetch full user data to ensure username is available
+            const user = await User.findById(req.user.id);
+
             res.render('dashboard/index', {
                 title: 'Dashboard',
+                user,
                 ownedProjects,
                 sharedProjects,
                 pendingRequests
@@ -31,6 +35,7 @@ const projectController = {
     // ── GET: Show create project form ───────────────────────────────
     showCreate(req, res) {
         if (!req.user) return res.redirect('/auth/login');
+        console.log('Rendering create project form for user:', req.user);
         res.render('projects/create', {
             title: 'Create Project'
         });
@@ -57,7 +62,11 @@ const projectController = {
                 description: description || null
             });
 
-            res.redirect(`/projects/${projectId}`);
+            // Fetch the created project to get its slug and user username
+            const project = await Project.findById(projectId);
+            const user = await User.findById(req.user.id);
+
+            res.redirect(`/${user.username}/${project.slug}`);
         } catch (err) {
             next(err);
         }
@@ -70,7 +79,8 @@ const projectController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.id);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -112,7 +122,8 @@ const projectController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.id);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -124,13 +135,15 @@ const projectController = {
 
             const envVars = await Environment.findByProjectId(project.id);
             const accessList = await ProjectAccess.findByProjectId(project.id);
+            const owner = await User.findById(project.user_id);
 
             res.render('projects/settings', {
                 title: `Settings - ${project.name}`,
                 project,
                 envVarsCount: envVars.length,
                 accessList,
-                isOwner: true
+                isOwner: true,
+                owner
             });
         } catch (err) {
             next(err);
@@ -144,7 +157,8 @@ const projectController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.id);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -154,9 +168,12 @@ const projectController = {
                 throw AppError.forbidden('Only the project owner can edit');
             }
 
+            const owner = await User.findById(project.user_id);
+
             res.render('projects/edit', {
                 title: `Edit ${project.name}`,
-                project
+                project,
+                owner
             });
         } catch (err) {
             next(err);
@@ -170,7 +187,8 @@ const projectController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.id);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -188,7 +206,7 @@ const projectController = {
                 description: description || undefined
             });
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}`);
         } catch (err) {
             next(err);
         }
@@ -201,7 +219,8 @@ const projectController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.id);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -212,7 +231,7 @@ const projectController = {
 
             await Project.delete(project.id);
 
-            res.redirect('/dashboard');
+            res.redirect('/');
         } catch (err) {
             next(err);
         }

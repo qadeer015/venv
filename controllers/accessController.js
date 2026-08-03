@@ -12,7 +12,8 @@ const accessController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.projectId);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -41,7 +42,7 @@ const accessController = {
                 status: 'pending'
             });
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}`);
         } catch (err) {
             next(err);
         }
@@ -54,7 +55,8 @@ const accessController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.projectId);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -85,7 +87,7 @@ const accessController = {
                 status: 'approved'
             });
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}/settings`);
         } catch (err) {
             next(err);
         }
@@ -108,9 +110,12 @@ const accessController = {
                 throw AppError.forbidden('Only the project owner can approve access requests');
             }
 
+            const project = await Project.findById(access.project_id);
+            const owner = await User.findById(project.user_id);
+
             await ProjectAccess.updateStatus(access.id, 'approved');
 
-            res.redirect(`/projects/${access.project_id}`);
+            res.redirect(`/${owner.username}/${project.slug}/settings`);
         } catch (err) {
             next(err);
         }
@@ -132,9 +137,12 @@ const accessController = {
                 throw AppError.forbidden('Only the project owner can reject access requests');
             }
 
+            const project = await Project.findById(access.project_id);
+            const owner = await User.findById(project.user_id);
+
             await ProjectAccess.updateStatus(access.id, 'rejected');
 
-            res.redirect(`/projects/${access.project_id}`);
+            res.redirect(`/${owner.username}/${project.slug}/settings`);
         } catch (err) {
             next(err);
         }
@@ -157,9 +165,12 @@ const accessController = {
                 throw AppError.forbidden('Only the project owner can revoke access');
             }
 
+            const project = await Project.findById(access.project_id);
+            const owner = await User.findById(project.user_id);
+
             await ProjectAccess.delete(access.id);
 
-            res.redirect(`/projects/${access.project_id}`);
+            res.redirect(`/${owner.username}/${project.slug}/settings`);
         } catch (err) {
             next(err);
         }
