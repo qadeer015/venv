@@ -5,12 +5,12 @@ const Environment = {
     /**
      * Create or update an environment variable (upsert)
      */
-    async upsert(projectId, envKey, envValue) {
+    async upsert(projectId, envKey, envValue, environment = 'development', note = null) {
         const [result] = await db.query(
-            `INSERT INTO environments (project_id, env_key, env_value)
-             VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE env_value = VALUES(env_value)`,
-            [projectId, envKey, envValue]
+            `INSERT INTO environments (project_id, env_key, env_value, environment, note)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE env_value = VALUES(env_value), note = VALUES(note)`,
+            [projectId, envKey, envValue, environment, note]
         );
         return result.affectedRows > 0;
     },
@@ -20,7 +20,7 @@ const Environment = {
      */
     async findByProjectId(projectId) {
         const [rows] = await db.query(
-            'SELECT id, env_key, env_value, created_at, updated_at FROM environments WHERE project_id = ? ORDER BY env_key ASC',
+            'SELECT id, env_key, env_value, environment, note, created_at, updated_at FROM environments WHERE project_id = ? ORDER BY environment ASC, env_key ASC',
             [projectId]
         );
         return rows;
@@ -38,12 +38,12 @@ const Environment = {
     },
 
     /**
-     * Get a single environment variable by key
+     * Get a single environment variable by key and environment
      */
-    async findByKey(projectId, envKey) {
+    async findByKey(projectId, envKey, environment = 'development') {
         const [rows] = await db.query(
-            'SELECT * FROM environments WHERE project_id = ? AND env_key = ?',
-            [projectId, envKey]
+            'SELECT * FROM environments WHERE project_id = ? AND env_key = ? AND environment = ?',
+            [projectId, envKey, environment]
         );
         return rows[0] || null;
     },
@@ -51,10 +51,10 @@ const Environment = {
     /**
      * Update an environment variable
      */
-    async update(id, envValue) {
+    async update(id, envValue, environment, note) {
         const [result] = await db.query(
-            'UPDATE environments SET env_value = ? WHERE id = ?',
-            [envValue, id]
+            'UPDATE environments SET env_value = ?, environment = ?, note = ? WHERE id = ?',
+            [envValue, environment, note, id]
         );
         return result.affectedRows > 0;
     },
@@ -99,16 +99,16 @@ const Environment = {
         if (!envVars || envVars.length === 0) return true;
 
         // Build a single multi-value INSERT ... ON DUPLICATE KEY UPDATE
-        const placeholders = envVars.map(() => '(?, ?, ?)').join(', ');
+        const placeholders = envVars.map(() => '(?, ?, ?, ?, ?)').join(', ');
         const values = [];
-        for (const { key, value } of envVars) {
-            values.push(projectId, key, value);
+        for (const { key, value, environment, note } of envVars) {
+            values.push(projectId, key, value, environment || 'development', note || null);
         }
 
         const [result] = await db.query(
-            `INSERT INTO environments (project_id, env_key, env_value)
+            `INSERT INTO environments (project_id, env_key, env_value, environment, note)
              VALUES ${placeholders}
-             ON DUPLICATE KEY UPDATE env_value = VALUES(env_value)`,
+             ON DUPLICATE KEY UPDATE env_value = VALUES(env_value), note = VALUES(note)`,
             values
         );
         return result.affectedRows > 0;

@@ -60,11 +60,13 @@ CREATE TABLE IF NOT EXISTS environments (
     project_id    BIGINT UNSIGNED NOT NULL,
     env_key       VARCHAR(255)    NOT NULL,
     env_value     TEXT            NOT NULL,
+    environment   ENUM('development','staging','production') NOT NULL DEFAULT 'development',
+    note          TEXT            DEFAULT NULL,
     created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX idx_env_project (project_id),
-    UNIQUE KEY uq_env_project_key (project_id, env_key),
+    UNIQUE KEY uq_env_project_key_env (project_id, env_key, environment),
 
     CONSTRAINT fk_env_project
         FOREIGN KEY (project_id) REFERENCES projects(id)

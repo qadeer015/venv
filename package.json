@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "npx nodemon server",
-    "migrate": "mysql -u root -p < db_schema/schema.sql"
+    "db:create": "mysql -u root -p < db_schema/schema.sql",
+    "db:migrate": "mysql -u root -p < db_schema/migrations/001_add_environment_note.sql"
   },
   "keywords": [],
   "author": "",

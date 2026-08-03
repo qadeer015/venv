@@ -27,6 +27,7 @@ router.get('/projects/create', projectController.showCreate);
 router.post('/projects', projectController.create);
 router.get('/projects/:id', projectController.show);
 router.get('/projects/:id/edit', projectController.showEdit);
+router.get('/projects/:id/settings', projectController.showSettings);
 router.put('/projects/:id', projectController.update);
 router.delete('/projects/:id', projectController.delete);
 
