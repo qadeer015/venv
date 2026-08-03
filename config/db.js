@@ -49,9 +49,9 @@ function createPool() {
 
         // ── SSL — required by TiDB Cloud (all environments) ─────────
         // TiDB Cloud Serverless uses self-signed certificates, so we
-        // must set rejectUnauthorized: false. The connection is still
-        // fully encrypted (TLS), but we skip CA chain verification.
-        ssl: isProd ? { rejectUnauthorized: true } : undefined
+        // must set rejectUnauthorized: false for development. In 
+        // production use rejectUnauthorized: true.
+        ssl: isProd ? { rejectUnauthorized: true } : { rejectUnauthorized: false }
     });
 
     // Wrap pool.query so every query gets a hard timeout.
