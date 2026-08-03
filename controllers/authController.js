@@ -14,7 +14,7 @@ const signToken = (user) => {
 const authController = {
     // ── GET: Show Login Page ─────────────────────────────────────────
     showLogin(req, res) {
-        if (req.user) return res.redirect(`${user.username}`);
+        if (req.user) return res.redirect('/');
         res.render('auth/login', {
             title: 'Login',
             header: false,
@@ -24,7 +24,7 @@ const authController = {
 
     // ── GET: Show Register Page ──────────────────────────────────────
     showRegister(req, res) {
-        if (req.user) return res.redirect(`${user.username}`);
+        if (req.user) return res.redirect('/');
         res.render('auth/register', {
             title: 'Create Account',
             header: false,
@@ -107,7 +107,7 @@ const authController = {
             if (!user.onboarded) {
                 return res.redirect('/onboarding');
             }
-            res.redirect(`${user.username}`);
+            res.redirect('/');
         } catch (err) {
             next(err);
         }
