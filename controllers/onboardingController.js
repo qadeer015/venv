@@ -42,7 +42,7 @@ const onboardingController = {
                 organization: organization ? organization.trim() : null
             });
 
-            res.redirect('/dashboard');
+            res.redirect(`${user.username}`);
         } catch (err) {
             next(err);
         }

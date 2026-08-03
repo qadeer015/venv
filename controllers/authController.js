@@ -5,7 +5,7 @@ const AppError = require('../utils/AppError');
 
 const signToken = (user) => {
     return jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, username: user.username, role: user.role },
         process.env.JWT_SECRET || process.env.SECRET_KEY,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -14,7 +14,7 @@ const signToken = (user) => {
 const authController = {
     // ── GET: Show Login Page ─────────────────────────────────────────
     showLogin(req, res) {
-        if (req.user) return res.redirect('/dashboard');
+        if (req.user) return res.redirect(`${user.username}`);
         res.render('auth/login', {
             title: 'Login',
             header: false,
@@ -24,7 +24,7 @@ const authController = {
 
     // ── GET: Show Register Page ──────────────────────────────────────
     showRegister(req, res) {
-        if (req.user) return res.redirect('/dashboard');
+        if (req.user) return res.redirect(`${user.username}`);
         res.render('auth/register', {
             title: 'Create Account',
             header: false,
@@ -107,7 +107,7 @@ const authController = {
             if (!user.onboarded) {
                 return res.redirect('/onboarding');
             }
-            res.redirect('/dashboard');
+            res.redirect(`${user.username}`);
         } catch (err) {
             next(err);
         }

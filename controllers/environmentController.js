@@ -14,7 +14,8 @@ const environmentController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.projectId);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -47,7 +48,7 @@ const environmentController = {
 
             await Environment.upsert(project.id, envKey.trim(), envValue || '', env, note || null);
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}`);
         } catch (err) {
             next(err);
         }
@@ -60,7 +61,8 @@ const environmentController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.projectId);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -99,7 +101,7 @@ const environmentController = {
 
             await Environment.bulkUpsert(project.id, formatted);
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}`);
         } catch (err) {
             next(err);
         }
@@ -112,7 +114,8 @@ const environmentController = {
                 throw AppError.unauthorized();
             }
 
-            const project = await Project.findById(req.params.projectId);
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
             }
@@ -136,7 +139,7 @@ const environmentController = {
 
             await Environment.delete(envVar.id);
 
-            res.redirect(`/projects/${project.id}`);
+            res.redirect(`/${username}/${projectSlug}`);
         } catch (err) {
             next(err);
         }

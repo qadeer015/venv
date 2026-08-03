@@ -39,6 +39,19 @@ const Project = {
     },
 
     /**
+     * Find project by username and project slug
+     */
+    async findByUsernameAndSlug(username, projectSlug) {
+        const [rows] = await db.query(
+            `SELECT p.* FROM projects p
+             JOIN users u ON u.id = p.user_id
+             WHERE u.username = ? AND p.slug = ?`,
+            [username, projectSlug]
+        );
+        return rows[0] || null;
+    },
+
+    /**
      * Get all projects for a user (owned)
      */
     async findByUserId(userId) {
@@ -54,7 +67,7 @@ const Project = {
      */
     async findSharedWithUser(userId) {
         const [rows] = await db.query(
-            `SELECT p.*, pa.permission, pa.status, u.email as owner_email, u.name as owner_name
+            `SELECT p.*, pa.permission, pa.status, u.email as owner_email, u.name as owner_name, u.username as owner_username
              FROM projects p
              JOIN project_access pa ON pa.project_id = p.id
              JOIN users u ON u.id = p.user_id
