@@ -13,12 +13,13 @@
         <div class="alert alert-danger">
             <%= error %>
         </div>
-        <% } %>
-            <% if (typeof success !=='undefined' && success) { %>
-                <div class="alert alert-success">
-                    <%= success %>
-                </div>
-                <% } %>
+    <% } %>
+
+    <% if (typeof success !=='undefined' && success) { %>
+        <div class="alert alert-success">
+            <%= success %>
+        </div>
+    <% } %>
 
                     <!-- Project Header -->
                     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
@@ -26,36 +27,10 @@
                             <h1 class="fw-bold mb-1">
                                 <%= project.name %>
                             </h1>
-                            <p class="text-muted mb-0">
-                                <% if (project.github_url) { %>
-                                    <i class="bi bi-github me-1"></i><a href="<%= project.github_url %>" target="_blank"
-                                        class="text-muted text-decoration-none">
-                                        <%= project.github_url %>
-                                    </a>
-                                    <% } %>
-                                        <% if (project.domain) { %>
-                                            <span class="mx-2">|</span>
-                                            <i class="bi bi-globe me-1"></i>
-                                            <%= project.domain %>
-                                                <% } %>
-                                                    <% if (project.description) { %>
-                                                        <br><small>
-                                                            <%= project.description %>
-                                                        </small>
-                                                        <% } %>
-                            </p>
+                            
                         </div>
                         <div class="d-flex gap-2">
-                            <% if (isOwner) { %>
-                                <a href="/projects/<%= project.id %>/settings" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-gear"></i> Settings
-                                </a>
-                                <% } else { %>
-                                    <span class="badge bg-info fs-6 align-self-center">
-                                        <i class="bi bi-eye me-1"></i>
-                                        <%= userAccess.permission==='edit' ? 'Editor' : 'Viewer' %>
-                                    </span>
-                                    <% } %>
+                            <!-- TODO: dropdown for change environment -->
                         </div>
                     </div>
 
@@ -238,6 +213,54 @@
 
                         <!-- Access Management Sidebar -->
                         <div class="col-lg-4">
+                            <!-- About Info -->
+                            <div class="card bg-dark border-secondary mb-4">
+                                <div class="card-header bg-dark border-secondary">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h5>
+                                        <% if (isOwner) { %>
+                                            <a href="/projects/<%= project.id %>/settings" class="btn btn-outline-secondary border-0 btn-sm">
+                                                <i class="bi bi-gear"></i>
+                                            </a>
+                                        <% } else { %>
+                                            <span class="badge bg-info fs-6 align-self-center">
+                                                <i class="bi bi-eye me-1"></i>
+                                                <%= userAccess.permission==='edit' ? 'Editor' : 'Viewer' %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="mb-0">
+                                        <div class="mb-3">
+                                            <% if (project.description) { %>
+                                                <small>
+                                                    <%= project.description || 'No description provided' %>
+                                                </small>
+                                            <% } %>
+                                        </div>
+                                        <div class="mb-1">
+                                            <dt class="text-muted small">GitHub</dt>
+                                            <% if (project.github_url) { %>
+                                                <i class="bi bi-github me-1"></i>
+                                                <a href="<%= project.github_url %>" target="_blank" class="text-muted text-decoration-none">
+                                                    <%= project.github_url?.replace('https://github.com/', '' ) || 'No GitHub URL provided' %>
+                                                </a>
+                                            <% } %>
+                                        </div>
+                                        <div class="mb-1">
+                                            <dt class="text-muted small">Domain</dt>
+                                            <% if (project.domain) { %>
+                                                <i class="bi bi-globe me-1"></i>
+                                                <a href="<%= project.domain %>" target="_blank" class="text-muted text-decoration-none">
+                                                    <%= project.domain?.replace('https://', '' ) || 'No domain provided' %>
+                                                </a>
+                                            <% } %>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+
                             <!-- Project Info -->
                             <div class="card bg-dark border-secondary mb-4">
                                 <div class="card-header bg-dark border-secondary">
