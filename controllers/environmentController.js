@@ -4,6 +4,8 @@ const Environment = require('../models/Environment');
 const ProjectAccess = require('../models/ProjectAccess');
 const AppError = require('../utils/AppError');
 
+const VALID_ENVIRONMENTS = ['development', 'staging', 'production'];
+
 const environmentController = {
     // ── POST: Add or update environment variable ────────────────────
     async upsert(req, res, next) {
@@ -26,7 +28,7 @@ const environmentController = {
                 }
             }
 
-            const { envKey, envValue } = req.body;
+            const { envKey, envValue, environment, note } = req.body;
 
             if (!envKey || !envKey.trim()) {
                 throw AppError.badRequest('Environment variable key is required');
@@ -37,7 +39,13 @@ const environmentController = {
                 throw AppError.badRequest('Key must be uppercase letters, numbers, and underscores only (e.g., DATABASE_URL)');
             }
 
-            await Environment.upsert(project.id, envKey.trim(), envValue || '');
+            // Validate environment
+            const env = environment || 'development';
+            if (!VALID_ENVIRONMENTS.includes(env)) {
+                throw AppError.badRequest('Environment must be one of: development, staging, production');
+            }
+
+            await Environment.upsert(project.id, envKey.trim(), envValue || '', env, note || null);
 
             res.redirect(`/projects/${project.id}`);
         } catch (err) {
@@ -65,22 +73,28 @@ const environmentController = {
                 }
             }
 
-            const { envVars } = req.body; // Array of { key, value }
+            const { envVars } = req.body; // Array of { key, value, environment, note }
 
             if (!envVars || !Array.isArray(envVars) || envVars.length === 0) {
                 throw AppError.badRequest('No environment variables provided');
             }
 
-            // Validate keys
+            // Validate keys and environments
             for (const ev of envVars) {
                 if (!ev.key || !/^[A-Z_][A-Z0-9_]*$/.test(ev.key.trim())) {
                     throw AppError.badRequest(`Invalid key format: ${ev.key}`);
+                }
+                const env = ev.environment || 'development';
+                if (!VALID_ENVIRONMENTS.includes(env)) {
+                    throw AppError.badRequest(`Invalid environment for key ${ev.key}: must be development, staging, or production`);
                 }
             }
 
             const formatted = envVars.map(ev => ({
                 key: ev.key.trim(),
-                value: ev.value || ''
+                value: ev.value || '',
+                environment: ev.environment || 'development',
+                note: ev.note || null
             }));
 
             await Environment.bulkUpsert(project.id, formatted);
