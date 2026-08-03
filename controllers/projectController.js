@@ -95,7 +95,16 @@ const projectController = {
                 }
             }
 
-            const envVars = await Environment.findByProjectId(project.id);
+            // Get environment filter from query params (default to 'production')
+            const selectedEnvironment = req.query.environment || 'production';
+            const validEnvironments = ['development', 'staging', 'production'];
+            const environmentFilter = validEnvironments.includes(selectedEnvironment) 
+                ? selectedEnvironment 
+                : 'production';
+
+            // Fetch all environment variables and filter by selected environment
+            const allEnvVars = await Environment.findByProjectId(project.id);
+            const envVars = allEnvVars.filter(env => env.environment === environmentFilter);
             const accessList = isOwner ? await ProjectAccess.findByProjectId(project.id) : [];
 
             // Fetch owner info for display
@@ -105,10 +114,12 @@ const projectController = {
                 title: project.name,
                 project,
                 envVars,
+                allEnvVars,
                 accessList,
                 isOwner,
                 userAccess: access,
-                owner
+                owner,
+                selectedEnvironment: environmentFilter
             });
         } catch (err) {
             next(err);
