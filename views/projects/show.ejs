@@ -43,12 +43,101 @@
                     <div class="row g-4">
                         <!-- Environment Variables Section -->
                         <div class="col-lg-8">
+                            <div class="row align-items-center mb-3">
+                                <div class="col-12 d-flex justify-content-between align-items-center">
+                            
+                                    <!-- Environment Split Button -->
+                                    <div class="btn-group">
+                            
+                                        <button type="button" class="btn btn-dark border-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                                            aria-expanded="false">
+                                            <i class="bi bi-layers me-2"></i>
+                                            <%= selectedEnvironment.charAt(0).toUpperCase() + selectedEnvironment.slice(1) %>
+                                        </button>
+                            
+                                        <ul class="dropdown-menu dropdown-menu-dark" style="min-width:250px;">
+                                            <li>
+                                                <a class="dropdown-item <%= selectedEnvironment==='development' ? 'active' : '' %>"
+                                                    href="?environment=development">
+                                                    <i class="bi bi-code-slash me-2"></i>
+                                                    Development
+                                                </a>
+                                            </li>
+                            
+                                            <li>
+                                                <a class="dropdown-item <%= selectedEnvironment==='staging' ? 'active' : '' %>"
+                                                    href="?environment=staging">
+                                                    <i class="bi bi-bezier2 me-2"></i>
+                                                    Staging
+                                                </a>
+                                            </li>
+                            
+                                            <li>
+                                                <a class="dropdown-item <%= selectedEnvironment==='production' ? 'active' : '' %>"
+                                                    href="?environment=production">
+                                                    <i class="bi bi-globe me-2"></i>
+                                                    Production
+                                                </a>
+                                            </li>
+                                        </ul>
+                            
+                                    </div>
+                            
+                                    <!-- Export Split Button -->
+                                    <div class="btn-group">
+            
+                                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-download me-2"></i>
+                                            Export
+                                        </button>
+            
+                                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" style="min-width:200px;">
+            
+                                            <li>
+                                                <button class="dropdown-item" onclick="copyAllToClipboard()">
+                                                    <i class="bi bi-clipboard me-2"></i>
+                                                    Copy all
+                                                </button>
+                                            </li>
+            
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+
+                                            <li>
+                                                <button class="dropdown-item" onclick="exportEnvVars('env')">
+                                                    <i class="bi bi-file-earmark-code me-2"></i>
+                                                    Export .env
+                                                </button>
+                                            </li>
+            
+                                            <li>
+                                                <button class="dropdown-item" onclick="exportEnvVars('json')">
+                                                    <i class="bi bi-filetype-json me-2"></i>
+                                                    Export JSON
+                                                </button>
+                                            </li>
+            
+                                            <li>
+                                                <button class="dropdown-item" onclick="exportEnvVars('yml')">
+                                                    <i class="bi bi-filetype-yml me-2"></i>
+                                                    Export YAML
+                                                </button>
+                                            </li>
+            
+                                        </ul>
+            
+                                    </div>
+                            
+                                </div>
+                            </div>
+
                             <div class="card bg-dark border-secondary">
                                 <div
                                     class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment
                                         Variables</h5>
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-warning text-dark" id="env-count-badge">
                                         <%= envVars.length %>
                                     </span>
                                 </div>
@@ -66,8 +155,6 @@
                                                         <tr>
                                                             <th class="border-secondary" style="width: 25%;">Key</th>
                                                             <th class="border-secondary">Value</th>
-                                                            <th class="border-secondary" style="width: 12%;">Environment
-                                                            </th>
                                                             <th class="border-secondary" style="width: 20%;">Note</th>
                                                             <th class="border-secondary text-end" style="width: 80px;">
                                                                 Actions</th>
@@ -101,19 +188,6 @@
                                                                             <i class="bi bi-clipboard"></i>
                                                                         </button>
                                                                     </div>
-                                                                </td>
-                                                                <td class="align-middle">
-                                                                    <% var envName=env.environment || 'development' ; %>
-                                                                        <% var envClass=envName==='production'
-                                                                            ? 'danger' : (envName==='staging'
-                                                                            ? 'warning' : 'info' ); %>
-                                                                            <span
-                                                                                class="badge bg-<%= envClass %> text-<%= envName === 'staging' ? 'dark' : 'light' %>">
-                                                                                <i
-                                                                                    class="bi bi-<%= envName === 'production' ? 'rocket-takeoff' : (envName === 'staging' ? 'gear' : 'bug') %> me-1"></i>
-                                                                                <%= envName.charAt(0).toUpperCase() +
-                                                                                    envName.slice(1) %>
-                                                                            </span>
                                                                 </td>
                                                                 <td class="align-middle">
                                                                     <% if (env.note) { %>
@@ -551,7 +625,18 @@
         }
     }
 
+    // ── Environment Filter Change Handler ──────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
+        const envFilter = document.getElementById('environmentFilter');
+        if (envFilter) {
+            envFilter.addEventListener('change', function () {
+                const selectedEnv = this.value;
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('environment', selectedEnv);
+                window.location.href = currentUrl.toString();
+            });
+        }
+
         // Toggle environment variable visibility
         document.querySelectorAll('.toggle-env-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -683,4 +768,116 @@
             });
         }
     });
+
+    // ── Export Functions ───────────────────────────────────────────
+    function exportEnvVars(format) {
+        // Get selected environment from the URL or the active dropdown
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedEnv = urlParams.get('environment') || 'production';
+        
+        const envVars = [];
+        
+        // Get all environment variables from the table
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(function(row) {
+            const keyCell = row.querySelector('td:first-child code');
+            const valueCell = row.querySelector('td:nth-child(2) code');
+            if (keyCell && valueCell) {
+                const key = keyCell.textContent.trim();
+                const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
+                envVars.push({ key: key, value: value });
+            }
+        });
+        
+        if (envVars.length === 0) {
+            showToast('No environment variables to export', { type: 'warning', duration: 3000, position: 'bottom-end' });
+            return;
+        }
+        
+        let content, fileName, mimeType;
+        
+        if (format === 'json') {
+            const jsonObj = {};
+            envVars.forEach(function(env) {
+                jsonObj[env.key] = env.value;
+            });
+            content = JSON.stringify(jsonObj, null, 2);
+            fileName = '.env.' + selectedEnv + '.json';
+            mimeType = 'application/json';
+        } else if (format === 'yml') {
+            content = envVars.map(function(env) {
+                return env.key + ': "' + env.value.replace(/"/g, '\\"') + '"';
+            }).join('\n');
+            fileName = '.env.' + selectedEnv + '.yml';
+            mimeType = 'text/yaml';
+        } else {
+            content = envVars.map(function(env) {
+                return env.key + '=' + env.value;
+            }).join('\n');
+            fileName = '.env.' + selectedEnv;
+            mimeType = 'text/plain';
+        }
+        
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        const formatName = format === 'env' ? '.env' : format.toUpperCase();
+        showToast('Exported ' + envVars.length + ' variables as ' + formatName, { type: 'success', duration: 2000, position: 'bottom-end' });
+    }
+
+    function copyAllToClipboard() {
+        const envVars = [];
+        
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(function(row) {
+            const keyCell = row.querySelector('td:first-child code');
+            const valueCell = row.querySelector('td:nth-child(2) code');
+            if (keyCell && valueCell) {
+                const key = keyCell.textContent.trim();
+                const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
+                envVars.push(key + '=' + value);
+            }
+        });
+        
+        if (envVars.length === 0) {
+            showToast('No environment variables to copy', { type: 'warning', duration: 3000, position: 'bottom-end' });
+            return;
+        }
+        
+        const text = envVars.join('\n');
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied ' + envVars.length + ' environment variables to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
+            }).catch(() => {
+                fallbackCopyAll(text);
+            });
+        } else {
+            fallbackCopyAll(text);
+        }
+    }
+
+    function fallbackCopyAll(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
+        } catch (e) {
+            showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
+        }
+        document.body.removeChild(textarea);
+    }
 </script>
