@@ -20,16 +20,22 @@ const environmentController = {
                 throw AppError.notFound('Project');
             }
 
-            // Check permission: owner or editor
-            const isOwner = project.user_id === req.user.id;
-            if (!isOwner) {
-                const access = await ProjectAccess.hasAccess(project.id, req.user.id);
-                if (!access || access.permission !== 'edit') {
-                    throw AppError.forbidden('You do not have permission to edit environment variables');
-                }
+            const { envKey, envValue, environment, note } = req.body;
+
+            // Validate environment
+            const env = environment || 'development';
+            if (!VALID_ENVIRONMENTS.includes(env)) {
+                throw AppError.badRequest('Environment must be one of: development, staging, production');
             }
 
-            const { envKey, envValue, environment, note } = req.body;
+            // Check permission: owner or editor with access to this environment
+            const isOwner = project.user_id === req.user.id;
+            if (!isOwner) {
+                const access = await ProjectAccess.hasAccess(project.id, req.user.id, env);
+                if (!access || access.permission !== 'edit') {
+                    throw AppError.forbidden('You do not have permission to edit environment variables in this environment');
+                }
+            }
 
             if (!envKey || !envKey.trim()) {
                 throw AppError.badRequest('Environment variable key is required');
@@ -38,12 +44,6 @@ const environmentController = {
             // Validate key format (uppercase, underscore, numbers)
             if (!/^[A-Z_][A-Z0-9_]*$/.test(envKey.trim())) {
                 throw AppError.badRequest('Key must be uppercase letters, numbers, and underscores only (e.g., DATABASE_URL)');
-            }
-
-            // Validate environment
-            const env = environment || 'development';
-            if (!VALID_ENVIRONMENTS.includes(env)) {
-                throw AppError.badRequest('Environment must be one of: development, staging, production');
             }
 
             await Environment.upsert(project.id, envKey.trim(), envValue || '', env, note || null);
@@ -65,14 +65,6 @@ const environmentController = {
             const project = await Project.findByUsernameAndSlug(username, projectSlug);
             if (!project) {
                 throw AppError.notFound('Project');
-            }
-
-            const isOwner = project.user_id === req.user.id;
-            if (!isOwner) {
-                const access = await ProjectAccess.hasAccess(project.id, req.user.id);
-                if (!access || access.permission !== 'edit') {
-                    throw AppError.forbidden('You do not have permission to edit environment variables');
-                }
             }
 
             const { envVars } = req.body; // Array of { key, value, environment, note }
@@ -99,6 +91,18 @@ const environmentController = {
                 note: ev.note || null
             }));
 
+            // Check permission: owner or editor with access to all target environments
+            const isOwner = project.user_id === req.user.id;
+            if (!isOwner) {
+                const targetEnvs = [...new Set(formatted.map(ev => ev.environment))];
+                for (const env of targetEnvs) {
+                    const access = await ProjectAccess.hasAccess(project.id, req.user.id, env);
+                    if (!access || access.permission !== 'edit') {
+                        throw AppError.forbidden(`You do not have permission to edit environment variables in the ${env} environment`);
+                    }
+                }
+            }
+
             await Environment.bulkUpsert(project.id, formatted);
 
             res.redirect(`/${username}/${projectSlug}`);
@@ -120,14 +124,6 @@ const environmentController = {
                 throw AppError.notFound('Project');
             }
 
-            const isOwner = project.user_id === req.user.id;
-            if (!isOwner) {
-                const access = await ProjectAccess.hasAccess(project.id, req.user.id);
-                if (!access || access.permission !== 'edit') {
-                    throw AppError.forbidden('You do not have permission to delete environment variables');
-                }
-            }
-
             const envVar = await Environment.findById(req.params.envId);
             if (!envVar) {
                 throw AppError.notFound('Environment variable');
@@ -135,6 +131,15 @@ const environmentController = {
 
             if (envVar.project_id !== project.id) {
                 throw AppError.badRequest('Environment variable does not belong to this project');
+            }
+
+            // Check permission: owner or editor with access to this environment
+            const isOwner = project.user_id === req.user.id;
+            if (!isOwner) {
+                const access = await ProjectAccess.hasAccess(project.id, req.user.id, envVar.environment);
+                if (!access || access.permission !== 'edit') {
+                    throw AppError.forbidden(`You do not have permission to delete environment variables in the ${envVar.environment} environment`);
+                }
             }
 
             await Environment.delete(envVar.id);

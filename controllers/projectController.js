@@ -87,22 +87,30 @@ const projectController = {
                 throw AppError.notFound('Project');
             }
 
-            // Check if user is owner or has approved access
-            const isOwner = project.user_id === req.user.id;
-            let access = null;
-            if (!isOwner) {
-                access = await ProjectAccess.hasAccess(project.id, req.user.id);
-                if (!access) {
-                    throw AppError.forbidden('You do not have access to this project');
-                }
-            }
-
             // Get environment filter from query params (default to 'production')
             const selectedEnvironment = req.query.environment || 'production';
             const validEnvironments = ['development', 'staging', 'production'];
             const environmentFilter = validEnvironments.includes(selectedEnvironment) 
                 ? selectedEnvironment 
                 : 'production';
+
+            // Check if user is owner or has approved access to the selected environment
+            const isOwner = project.user_id === req.user.id;
+            let access = null;
+            let accessibleEnvironments = validEnvironments;
+            if (!isOwner) {
+                access = await ProjectAccess.hasAccess(project.id, req.user.id);
+                if (!access) {
+                    throw AppError.forbidden('You do not have access to this project');
+                }
+                accessibleEnvironments = access.environments || [];
+                
+                // If user doesn't have access to the selected environment, redirect to first accessible one
+                if (!accessibleEnvironments.includes(environmentFilter)) {
+                    const fallbackEnv = accessibleEnvironments[0] || 'production';
+                    return res.redirect(`/${username}/${projectSlug}?environment=${fallbackEnv}`);
+                }
+            }
 
             // Fetch all environment variables and filter by selected environment
             const allEnvVars = await Environment.findByProjectId(project.id);
@@ -121,7 +129,8 @@ const projectController = {
                 isOwner,
                 userAccess: access,
                 owner,
-                selectedEnvironment: environmentFilter
+                selectedEnvironment: environmentFilter,
+                accessibleEnvironments
             });
         } catch (err) {
             next(err);

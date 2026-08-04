@@ -157,15 +157,42 @@
                                             <!-- Search Results Dropdown -->
                                             <div id="userSearchResults" class="list-group mb-2" style="display: none;">
                                             </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="permission"
-                                                    id="permView" value="view" checked>
-                                                <label class="form-check-label small" for="permView">View</label>
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted">Access Type</label>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="permission"
+                                                        id="permView" value="view" checked>
+                                                    <label class="form-check-label small" for="permView">View</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio" name="permission"
+                                                        id="permEdit" value="edit">
+                                                    <label class="form-check-label small" for="permEdit">Edit</label>
+                                                </div>
                                             </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="permission"
-                                                    id="permEdit" value="edit">
-                                                <label class="form-check-label small" for="permEdit">Edit</label>
+                                            <div class="mb-2">
+                                                <label class="form-label small text-muted">Environments</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                        id="envDev" value="development" checked>
+                                                    <label class="form-check-label small" for="envDev">
+                                                        <i class="bi bi-code-slash me-1"></i>Development
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                        id="envStaging" value="staging" checked>
+                                                    <label class="form-check-label small" for="envStaging">
+                                                        <i class="bi bi-bezier2 me-1"></i>Staging
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                        id="envProd" value="production" checked>
+                                                    <label class="form-check-label small" for="envProd">
+                                                        <i class="bi bi-globe me-1"></i>Production
+                                                    </label>
+                                                </div>
                                             </div>
                                         </form>
 
@@ -183,6 +210,16 @@
                                                         <div>
                                                             <small><%= access.user_name || access.email %></small>
                                                             <span class="badge bg-<%= badgeClass %> ms-1"><%= statusLabel %></span>
+                                                            <% if (access.environments && access.environments.length > 0) { %>
+                                                                <div class="mt-1">
+                                                                    <% access.environments.forEach(function(env) { %>
+                                                                        <span class="badge bg-dark border border-secondary text-muted me-1">
+                                                                            <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
+                                                                            <%= env.charAt(0).toUpperCase() + env.slice(1) %>
+                                                                        </span>
+                                                                    <% }); %>
+                                                                </div>
+                                                            <% } %>
                                                             <% if (access.expires_at && isPendingInvite) { %>
                                                                 <small class="text-muted d-block">Expires <%= new Date(access.expires_at).toLocaleDateString() %></small>
                                                             <% } %>
@@ -203,12 +240,78 @@
                                                                     <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Revoke"><i class="bi bi-person-x"></i></button>
                                                                 </form>
                                                             <% } else if (access.status === 'approved') { %>
+                                                                <button type="button" class="btn btn-sm btn-outline-info border-0" title="Edit Access" data-bs-toggle="modal" data-bs-target="#editAccessModal<%= access.id %>">
+                                                                    <i class="bi bi-pencil"></i>
+                                                                </button>
                                                                 <form action="/<%= owner.username %>/<%= project.slug %>/access/<%= access.id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('<%= revokeConfirm %>')">
                                                                     <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Revoke"><i class="bi bi-person-x"></i></button>
                                                                 </form>
                                                             <% } %>
                                                         </div>
                                                     </div>
+
+                                                    <!-- Edit Access Modal -->
+                                                    <% if (access.status === 'approved') { %>
+                                                        <div class="modal fade" id="editAccessModal<%= access.id %>" tabindex="-1" aria-labelledby="editAccessModalLabel<%= access.id %>" aria-hidden="true">
+                                                            <div class="modal-dialog">
+                                                                <div class="modal-content bg-dark border-secondary">
+                                                                    <div class="modal-header border-secondary">
+                                                                        <h5 class="modal-title" id="editAccessModalLabel<%= access.id %>">
+                                                                            <i class="bi bi-pencil-square me-2"></i>Edit Access for <%= access.user_name || access.email %>
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                    </div>
+                                                                    <form action="/<%= owner.username %>/<%= project.slug %>/access/<%= access.id %>/update" method="POST">
+                                                                        <div class="modal-body">
+                                                                            <div class="mb-3">
+                                                                                <label class="form-label small text-muted">Access Type</label>
+                                                                                <div class="form-check form-check-inline">
+                                                                                    <input class="form-check-input" type="radio" name="permission"
+                                                                                        id="editPermView<%= access.id %>" value="view" <%= access.permission === 'view' ? 'checked' : '' %>>
+                                                                                    <label class="form-check-label small" for="editPermView<%= access.id %>">View</label>
+                                                                                </div>
+                                                                                <div class="form-check form-check-inline">
+                                                                                    <input class="form-check-input" type="radio" name="permission"
+                                                                                        id="editPermEdit<%= access.id %>" value="edit" <%= access.permission === 'edit' ? 'checked' : '' %>>
+                                                                                    <label class="form-check-label small" for="editPermEdit<%= access.id %>">Edit</label>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="mb-3">
+                                                                                <label class="form-label small text-muted">Environments</label>
+                                                                                <div class="form-check">
+                                                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                                                        id="editEnvDev<%= access.id %>" value="development" <%= access.environments && access.environments.includes('development') ? 'checked' : '' %>>
+                                                                                    <label class="form-check-label small" for="editEnvDev<%= access.id %>">
+                                                                                        <i class="bi bi-code-slash me-1"></i>Development
+                                                                                    </label>
+                                                                                </div>
+                                                                                <div class="form-check">
+                                                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                                                        id="editEnvStaging<%= access.id %>" value="staging" <%= access.environments && access.environments.includes('staging') ? 'checked' : '' %>>
+                                                                                    <label class="form-check-label small" for="editEnvStaging<%= access.id %>">
+                                                                                        <i class="bi bi-bezier2 me-1"></i>Staging
+                                                                                    </label>
+                                                                                </div>
+                                                                                <div class="form-check">
+                                                                                    <input class="form-check-input" type="checkbox" name="environments"
+                                                                                        id="editEnvProd<%= access.id %>" value="production" <%= access.environments && access.environments.includes('production') ? 'checked' : '' %>>
+                                                                                    <label class="form-check-label small" for="editEnvProd<%= access.id %>">
+                                                                                        <i class="bi bi-globe me-1"></i>Production
+                                                                                    </label>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="modal-footer border-secondary">
+                                                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                            <button type="submit" class="btn btn-info">
+                                                                                <i class="bi bi-check-lg me-1"></i> Save Changes
+                                                                            </button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <% } %>
                                                 <% }); %>
                                             </div>
                                         <% } else { %>

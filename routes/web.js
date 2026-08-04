@@ -50,6 +50,7 @@ router.post('/:username/:projectSlug/access/grant', accessController.grantAccess
 router.post('/:username/:projectSlug/access/invite', accessController.inviteUser);
 router.post('/:username/:projectSlug/access/:accessId/approve', accessController.approveAccess);
 router.post('/:username/:projectSlug/access/:accessId/reject', accessController.rejectAccess);
+router.post('/:username/:projectSlug/access/:accessId/update', accessController.updateAccessEnvironments);
 router.delete('/:username/:projectSlug/access/:accessId', accessController.revokeAccess);
 router.get('/api/users/search', accessController.searchUsers);
 

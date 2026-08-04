@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS project_access (
     project_id    BIGINT UNSIGNED NOT NULL,
     user_id       BIGINT UNSIGNED NOT NULL,
     permission    ENUM('view','edit') NOT NULL DEFAULT 'view',
+    environments  VARCHAR(255)    NOT NULL DEFAULT 'development,staging,production',
     status        ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
     created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

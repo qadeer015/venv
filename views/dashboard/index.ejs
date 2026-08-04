@@ -93,6 +93,16 @@
                                         <%= project.permission %>
                                     </span>
                                 </small>
+                                <% if (project.environments && project.environments.length > 0) { %>
+                                    <div class="mt-1">
+                                        <% project.environments.forEach(function(env) { %>
+                                            <span class="badge bg-dark border border-secondary text-muted me-1">
+                                                <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
+                                                <%= env.charAt(0).toUpperCase() + env.slice(1) %>
+                                            </span>
+                                        <% }); %>
+                                    </div>
+                                <% } %>
                             </div>
                             <i class="bi bi-chevron-right text-info"></i>
                         </a>
