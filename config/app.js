@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const cookieParser = require('cookie-parser');
 const methodOverride = require("method-override");
 const expressLayouts = require("express-ejs-layouts");
+const session = require('express-session');
 
 //web routes
 const path = require('path');
@@ -59,7 +60,31 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(methodOverride("_method"));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
 app.use(optionalAuthenticate); // Set req.user if authenticated, but don't block if not authenticated
+
+// ── Session flash messages ─────────────────────────────────────────────
+// Consumes req.session.success / req.session.error (set by controllers
+// before redirecting) and exposes them as locals for the rendered view,
+// then clears them so they only appear once.
+app.use((req, res, next) => {
+    if (req.session) {
+        res.locals.success = req.session.success;
+        res.locals.error = req.session.error;
+        delete req.session.success;
+        delete req.session.error;
+    }
+    next();
+});
 
 app.use(express.static(path.join(__dirname, '../public')));
 

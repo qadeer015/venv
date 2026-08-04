@@ -10,11 +10,12 @@ const projectController = {
     async dashboard(req, res, next) {
         try {
             if (!req.user) return res.redirect('/auth/login');
-
-            const [ownedProjects, sharedProjects, pendingRequests] = await Promise.all([
+            
+            const [ownedProjects, sharedProjects, pendingRequests, pendingInvitations] = await Promise.all([
                 Project.findByUserId(req.user.id),
                 Project.findSharedWithUser(req.user.id),
-                ProjectAccess.findPendingByOwner(req.user.id)
+                ProjectAccess.findPendingByOwner(req.user.id),
+                ProjectAccess.findPendingInvitationsForUser(req.user.id)
             ]);
 
             // Fetch full user data to ensure username is available
@@ -25,7 +26,8 @@ const projectController = {
                 user,
                 ownedProjects,
                 sharedProjects,
-                pendingRequests
+                pendingRequests,
+                pendingInvitations
             });
         } catch (err) {
             next(err);
