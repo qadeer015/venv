@@ -28,6 +28,7 @@ router.get('/:username/:projectSlug/settings', projectController.showSettings);
 router.put('/:username/:projectSlug', projectController.update);
 router.delete('/:username/:projectSlug', projectController.delete);
 
+
 // ── Dashboard ────────────────────────────────────────────────────────
 router.get('/:username', projectController.dashboard);
 
@@ -36,12 +37,20 @@ router.post('/:username/:projectSlug/environments', environmentController.upsert
 router.post('/:username/:projectSlug/environments/bulk', environmentController.bulkUpsert);
 router.delete('/:username/:projectSlug/environments/:envId', environmentController.delete);
 
+// ── Invitation Routes ────────────────────────────────────────────────
+// GET /:owner/:project/invitations → invitation request page
+// (only accessible if the current user is invited & status is pending)
+router.get('/:username/:projectSlug/invitations', accessController.viewInvitations);
+router.post('/:username/:projectSlug/invitations/accept', accessController.acceptInvitation);
+router.post('/:username/:projectSlug/invitations/decline', accessController.declineInvitation);
+
 // ── Access Control Routes ────────────────────────────────────────────
 router.post('/:username/:projectSlug/access/request', accessController.requestAccess);
 router.post('/:username/:projectSlug/access/grant', accessController.grantAccess);
-router.post('/access/:accessId/approve', accessController.approveAccess);
-router.post('/access/:accessId/reject', accessController.rejectAccess);
-router.delete('/access/:accessId', accessController.revokeAccess);
+router.post('/:username/:projectSlug/access/invite', accessController.inviteUser);
+router.post('/:username/:projectSlug/access/:accessId/approve', accessController.approveAccess);
+router.post('/:username/:projectSlug/access/:accessId/reject', accessController.rejectAccess);
+router.delete('/:username/:projectSlug/access/:accessId', accessController.revokeAccess);
 router.get('/api/users/search', accessController.searchUsers);
 
 // ── Root redirect ────────────────────────────────────────────────────

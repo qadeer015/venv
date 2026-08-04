@@ -96,15 +96,30 @@ const User = {
     },
 
     /**
-     * Search users by email (for access sharing)
+     * Find user by email or username
      */
-    async searchByEmail(email, excludeUserId) {
+    async findByEmailOrUsername(identifier) {
+        const [rows] = await db.query(
+            `SELECT * FROM users
+             WHERE (email = ? OR username = ?) AND status = ?
+             LIMIT 1`,
+            [identifier, identifier, 'active']
+        );
+        return rows[0] || null;
+    },
+
+    /**
+     * Search users by email or username (for invitations)
+     */
+    async searchByIdentifier(query, excludeUserId) {
         const [rows] = await db.query(
             `SELECT id, email, name, username
              FROM users
-             WHERE email LIKE ? AND id != ? AND status = ?
+             WHERE (email LIKE ? OR username LIKE ?) 
+                AND id != ? 
+                AND status = ?
              LIMIT 10`,
-            [`%${email}%`, excludeUserId, 'active']
+            [`%${query}%`, `%${query}%`, excludeUserId, 'active']
         );
         return rows;
     }

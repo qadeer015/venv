@@ -21,6 +21,17 @@
     </div>
     <% } %>
 
+    <!-- Pending Invitations Alert -->
+    <% if (typeof pendingInvitations !== 'undefined' && pendingInvitations && pendingInvitations.length > 0) { %>
+    <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="bi bi-envelope-fill me-3 fs-4"></i>
+        <div>
+            <strong><%= pendingInvitations.length %> pending invitation(s)</strong> for projects shared with you.
+            <a href="#pending-invitations" class="alert-link ms-2">View invitations</a>
+        </div>
+    </div>
+    <% } %>
+
     <div class="row g-4">
         <!-- Owned Projects -->
         <div class="col-lg-8">
@@ -110,6 +121,32 @@
                 </div>
             </div>
 
+            <!-- Invitations Card -->
+            <% if (typeof pendingInvitations !== 'undefined' && pendingInvitations && pendingInvitations.length > 0) { %>
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-envelope text-info me-2"></i>Invitations</h6>
+                    <span class="badge bg-info"><%= pendingInvitations.length %></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <% pendingInvitations.forEach(function(invite) { %>
+                        <a href="/<%= invite.inviter_username %>/<%= invite.project_slug %>/invitations"
+                           class="list-group-item list-group-item-action bg-dark text-light border-secondary">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="small"><%= invite.project_name %></strong>
+                                    <small class="d-block text-muted"><%= invite.inviter_username %></small>
+                                </div>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </div>
+                        </a>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+
             <!-- Pending Requests (if any) -->
             <% if (typeof pendingRequests !== 'undefined' && pendingRequests && pendingRequests.length > 0) { %>
             <div class="card bg-dark border-secondary" id="pending-requests">
@@ -126,12 +163,12 @@
                                     <small class="d-block text-muted"><%= req.project_name %></small>
                                 </div>
                                 <div class="d-flex gap-1">
-                                    <form action="/access/<%= req.id %>/approve" method="POST" class="d-inline">
+                                    <form action="/<%= req.owner_username || user.username %>/<%= req.project_slug %>/access/<%= req.id %>/approve" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-success" title="Approve">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
                                     </form>
-                                    <form action="/access/<%= req.id %>/reject" method="POST" class="d-inline">
+                                    <form action="/<%= req.owner_username || user.username %>/<%= req.project_slug %>/access/<%= req.id %>/reject" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject">
                                             <i class="bi bi-x-lg"></i>
                                         </button>

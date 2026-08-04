@@ -1,0 +1,114 @@
+<div class="container py-5" style="max-width: 720px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/<%= owner.username %>" class="text-success text-decoration-none">
+                    <%= owner.username %>
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="/<%= owner.username %>/<%= project.slug %>" class="text-success text-decoration-none">
+                    <%= project.name %>
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Invitation</li>
+        </ol>
+    </nav>
+
+    <!-- Invitation Card -->
+    <div class="card bg-dark border-secondary shadow-sm">
+        <div class="card-body p-4 p-md-5 text-center">
+            <!-- Inviter Avatar -->
+            <div class="d-flex justify-content-center mb-4">
+                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center border border-success"
+                    style="width: 96px; height: 96px;">
+                    <i class="bi bi-person-fill text-success" style="font-size: 3rem;"></i>
+                </div>
+            </div>
+
+            <h1 class="fw-bold mb-2">
+                <%= owner.username %> invited you to collaborate
+            </h1>
+
+            <p class="text-muted mb-4">
+                You have been invited to collaborate on the project
+                <strong class="text-light">
+                    <i class="bi bi-folder-fill text-warning me-1"></i><%= project.name %>
+                </strong>
+                with
+                <span class="badge bg-<%= invitation.permission === 'edit' ? 'warning' : 'secondary' %>">
+                    <i class="bi bi-<%= invitation.permission === 'edit' ? 'pencil-square' : 'eye' %> me-1"></i>
+                    <%= invitation.permission %> access
+                </span>
+            </p>
+
+            <!-- Invitation Details -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6">
+                    <div class="border border-secondary rounded p-3 bg-dark-subtle h-100">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-person me-1"></i>From
+                        </small>
+                        <span class="text-light">
+                            <a href="/<%= owner.username %>" class="text-success text-decoration-none">
+                                <%= owner.username %>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="border border-secondary rounded p-3 bg-dark-subtle h-100">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-clock me-1"></i>Expires
+                        </small>
+                        <% if (invitation.expires_at) { %>
+                        <span class="text-warning">
+                            <%= new Date(invitation.expires_at).toLocaleDateString() %>
+                        </span>
+                        <% } else { %>
+                        <span class="text-muted">Never</span>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expiry Warning -->
+            <% if (invitation.expires_at) { %>
+            <div class="alert alert-warning bg-warning bg-opacity-10 border-warning text-start mb-4">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                This invitation will expire on
+                <strong><%= new Date(invitation.expires_at).toLocaleString() %></strong>.
+                Accept it before the expiry date to gain access.
+            </div>
+            <% } %>
+
+            <!-- Accept / Reject Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                <form action="/<%= owner.username %>/<%= project.slug %>/invitations/accept" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-success btn-lg px-4">
+                        <i class="bi bi-check-lg me-2"></i>Accept invitation
+                    </button>
+                </form>
+                <form action="/<%= owner.username %>/<%= project.slug %>/invitations/decline" method="POST" class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to decline this invitation?')">
+                    <button type="submit" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-x-lg me-2"></i>Decline
+                    </button>
+                </form>
+            </div>
+
+            <p class="text-muted small mt-4 mb-0">
+                <i class="bi bi-shield-check me-1"></i>
+                By accepting, you will be granted
+                <strong><%= invitation.permission %> access</strong> to this project.
+            </p>
+        </div>
+    </div>
+
+    <!-- Security Note -->
+    <p class="text-center text-muted small mt-4">
+        <i class="bi bi-info-circle me-1"></i>
+        Only project invitations that were sent to your account are visible here.
+    </p>
+</div>

@@ -4,6 +4,8 @@ const Project = require('../models/Project');
 const ProjectAccess = require('../models/ProjectAccess');
 const AppError = require('../utils/AppError');
 
+const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+
 const accessController = {
     // ── POST: Request access to a project ───────────────────────────
     async requestAccess(req, res, next) {
@@ -32,7 +34,10 @@ const accessController = {
                 if (existing.status === 'approved') {
                     throw AppError.badRequest('You already have access to this project');
                 }
-                // If rejected, allow re-request
+                if (existing.status === 'invited' && (!existing.expires_at || new Date(existing.expires_at) > new Date())) {
+                    throw AppError.badRequest('You have already been invited to this project');
+                }
+                // If rejected/declined/expired, allow re-request
             }
 
             await ProjectAccess.create({
@@ -43,6 +48,172 @@ const accessController = {
             });
 
             res.redirect(`/${username}/${projectSlug}`);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    // ── POST: Invite user to project (owner action) ──────────────────
+    async inviteUser(req, res, next) {
+        try {
+            if (!req.user) {
+                throw AppError.unauthorized();
+            }
+
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
+            }
+
+            if (project.user_id !== req.user.id) {
+                throw AppError.forbidden('Only the project owner can invite users');
+            }
+
+            const { identifier, permission } = req.body;
+
+            if (!identifier || !identifier.trim()) {
+                throw AppError.badRequest('Username or email is required');
+            }
+
+            // Search for user by email or username
+            const targetUser = await User.findByEmailOrUsername(identifier.trim());
+            if (!targetUser) {
+                throw AppError.notFound('User', 'No user found with this username or email');
+            }
+
+            if (targetUser.id === req.user.id) {
+                throw AppError.badRequest('You cannot invite yourself');
+            }
+
+            // Check if access/invitation already exists
+            const existing = await ProjectAccess.exists(project.id, targetUser.id);
+            if (existing) {
+                if (existing.status === 'approved') {
+                    throw AppError.badRequest('User already has access to this project');
+                }
+                if (
+                    existing.status === 'invited' &&
+                    (!existing.expires_at || new Date(existing.expires_at) > new Date())
+                ) {
+                    throw AppError.badRequest('User has already been invited');
+                }
+                // If pending/rejected/declined/expired, allow new invitation
+                await ProjectAccess.delete(existing.id);
+            }
+
+            // Token-less invitation with a 1-week expiry
+            const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+
+            await ProjectAccess.create({
+                projectId: project.id,
+                userId: targetUser.id,
+                permission: permission || 'view',
+                status: 'invited',
+                expiresAt
+            });
+
+            req.session.success = 'Invitation sent successfully! The invite expires in 1 week.';
+            res.redirect(`/${username}/${projectSlug}/settings`);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    // ── GET: View invitation request page ───────────────────────────
+    // Only accessible when the current user has a pending (non-expired)
+    // invitation for this project. Otherwise a 404 is shown.
+    async viewInvitations(req, res, next) {
+        try {
+            if (!req.user) {
+                throw AppError.unauthorized();
+            }
+
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
+            }
+
+            // Load full user profile (req.user only carries JWT claims)
+            const user = await User.findById(req.user.id);
+
+            // The invitation page is only reachable if this user actually
+            // has a pending invitation for this project.
+            const invitation = await ProjectAccess.findPendingInvitation(project.id, user.id);
+            if (!invitation) {
+                throw AppError.notFound('Invitation', 'This invitation does not exist or has expired');
+            }
+
+            const owner = await User.findById(project.user_id);
+
+            res.render('dashboard/invitations', {
+                user,
+                owner,
+                project: { ...project, slug: projectSlug },
+                invitation,
+                projectContext: { username, projectSlug }
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    // ── POST: Accept invitation ─────────────────────────────────────
+    async acceptInvitation(req, res, next) {
+        try {
+            if (!req.user) {
+                throw AppError.unauthorized();
+            }
+
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
+            }
+
+            const user = await User.findById(req.user.id);
+
+            const access = await ProjectAccess.findPendingInvitation(project.id, user.id);
+            if (!access) {
+                throw AppError.notFound('Invitation', 'This invitation does not exist or has expired');
+            }
+
+            await ProjectAccess.updateStatus(access.id, 'approved');
+
+            const owner = await User.findById(project.user_id);
+
+            req.session.success = 'You have accepted the invitation!';
+            res.redirect(`/${owner.username}/${project.slug}`);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    // ── POST: Decline invitation ────────────────────────────────────
+    async declineInvitation(req, res, next) {
+        try {
+            if (!req.user) {
+                throw AppError.unauthorized();
+            }
+
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
+            }
+
+            const user = await User.findById(req.user.id);
+
+            const access = await ProjectAccess.findPendingInvitation(project.id, user.id);
+            if (!access) {
+                throw AppError.notFound('Invitation', 'This invitation does not exist or has expired');
+            }
+
+            await ProjectAccess.updateStatus(access.id, 'declined');
+
+            req.session.success = 'You have declined the invitation';
+            res.redirect('/');
         } catch (err) {
             next(err);
         }
@@ -100,22 +271,25 @@ const accessController = {
                 throw AppError.unauthorized();
             }
 
-            const access = await ProjectAccess.findById(req.params.accessId);
-            if (!access) {
-                throw AppError.notFound('Access request');
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
             }
 
             // Only project owner can approve
-            if (access.owner_id !== req.user.id) {
+            if (project.user_id !== req.user.id) {
                 throw AppError.forbidden('Only the project owner can approve access requests');
             }
 
-            const project = await Project.findById(access.project_id);
-            const owner = await User.findById(project.user_id);
+            const access = await ProjectAccess.findById(req.params.accessId);
+            if (!access || access.project_id !== project.id) {
+                throw AppError.notFound('Access request');
+            }
 
             await ProjectAccess.updateStatus(access.id, 'approved');
 
-            res.redirect(`/${owner.username}/${project.slug}/settings`);
+            res.redirect(`/${username}/${projectSlug}/settings`);
         } catch (err) {
             next(err);
         }
@@ -128,67 +302,74 @@ const accessController = {
                 throw AppError.unauthorized();
             }
 
-            const access = await ProjectAccess.findById(req.params.accessId);
-            if (!access) {
-                throw AppError.notFound('Access request');
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
             }
 
-            if (access.owner_id !== req.user.id) {
+            if (project.user_id !== req.user.id) {
                 throw AppError.forbidden('Only the project owner can reject access requests');
             }
 
-            const project = await Project.findById(access.project_id);
-            const owner = await User.findById(project.user_id);
+            const access = await ProjectAccess.findById(req.params.accessId);
+            if (!access || access.project_id !== project.id) {
+                throw AppError.notFound('Access request');
+            }
 
             await ProjectAccess.updateStatus(access.id, 'rejected');
 
-            res.redirect(`/${owner.username}/${project.slug}/settings`);
+            res.redirect(`/${username}/${projectSlug}/settings`);
         } catch (err) {
             next(err);
         }
     },
 
-    // ── DELETE: Revoke access ───────────────────────────────────────
+    // ── DELETE: Revoke access (owner action) ───────────────────────
     async revokeAccess(req, res, next) {
         try {
             if (!req.user) {
                 throw AppError.unauthorized();
             }
 
-            const access = await ProjectAccess.findById(req.params.accessId);
-            if (!access) {
-                throw AppError.notFound('Access record');
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
             }
 
             // Only project owner can revoke
-            if (access.owner_id !== req.user.id) {
+            if (project.user_id !== req.user.id) {
                 throw AppError.forbidden('Only the project owner can revoke access');
             }
 
-            const project = await Project.findById(access.project_id);
-            const owner = await User.findById(project.user_id);
+            const access = await ProjectAccess.findById(req.params.accessId);
+            if (!access || access.project_id !== project.id) {
+                throw AppError.notFound('Access record');
+            }
 
             await ProjectAccess.delete(access.id);
 
-            res.redirect(`/${owner.username}/${project.slug}/settings`);
+            req.session.success = 'Access has been revoked';
+            res.redirect(`/${username}/${projectSlug}/settings`);
         } catch (err) {
             next(err);
         }
     },
 
-    // ── GET: Search users by email (for granting access) ────────────
+    // ── GET: Search users by email or username (for inviting) ────────
     async searchUsers(req, res, next) {
         try {
             if (!req.user) {
                 throw AppError.unauthorized();
             }
 
-            const { email } = req.query;
-            if (!email || email.length < 2) {
+            const { q } = req.query;
+            if (!q || q.length < 2) {
                 return res.json([]);
             }
 
-            const users = await User.searchByEmail(email, req.user.id);
+            const users = await User.searchByIdentifier(q, req.user.id);
             res.json(users);
         } catch (err) {
             next(err);
