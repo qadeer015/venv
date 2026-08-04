@@ -56,6 +56,7 @@
                                         </button>
                             
                                         <ul class="dropdown-menu dropdown-menu-dark" style="min-width:250px;">
+                                            <% if (accessibleEnvironments.includes('development')) { %>
                                             <li>
                                                 <a class="dropdown-item <%= selectedEnvironment==='development' ? 'active' : '' %>"
                                                     href="?environment=development">
@@ -63,7 +64,9 @@
                                                     Development
                                                 </a>
                                             </li>
+                                            <% } %>
                             
+                                            <% if (accessibleEnvironments.includes('staging')) { %>
                                             <li>
                                                 <a class="dropdown-item <%= selectedEnvironment==='staging' ? 'active' : '' %>"
                                                     href="?environment=staging">
@@ -71,7 +74,9 @@
                                                     Staging
                                                 </a>
                                             </li>
+                                            <% } %>
                             
+                                            <% if (accessibleEnvironments.includes('production')) { %>
                                             <li>
                                                 <a class="dropdown-item <%= selectedEnvironment==='production' ? 'active' : '' %>"
                                                     href="?environment=production">
@@ -79,6 +84,7 @@
                                                     Production
                                                 </a>
                                             </li>
+                                            <% } %>
                                         </ul>
                             
                                     </div>
@@ -273,9 +279,15 @@
                                                         <select
                                                             class="form-select bg-dark text-light border-secondary env-environment"
                                                             name="envVars[0][environment]">
-                                                            <option value="development" selected>Development</option>
-                                                            <option value="staging">Staging</option>
-                                                            <option value="production">Production</option>
+                                                            <% if (accessibleEnvironments.includes('development')) { %>
+                                                            <option value="development" <%= selectedEnvironment === 'development' ? 'selected' : '' %>>Development</option>
+                                                            <% } %>
+                                                            <% if (accessibleEnvironments.includes('staging')) { %>
+                                                            <option value="staging" <%= selectedEnvironment === 'staging' ? 'selected' : '' %>>Staging</option>
+                                                            <% } %>
+                                                            <% if (accessibleEnvironments.includes('production')) { %>
+                                                            <option value="production" <%= selectedEnvironment === 'production' ? 'selected' : '' %>>Production</option>
+                                                            <% } %>
                                                         </select>
                                                     </div>
                                                     <div>
@@ -435,6 +447,16 @@
                                                                     <%= access.status %>
                                                                 </span>
                                                                 <% } %>
+                                                            <% if (access.environments && access.environments.length > 0) { %>
+                                                                <div class="mt-1">
+                                                                    <% access.environments.forEach(function(env) { %>
+                                                                        <span class="badge bg-dark border border-secondary text-muted me-1">
+                                                                            <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
+                                                                            <%= env.charAt(0).toUpperCase() + env.slice(1) %>
+                                                                        </span>
+                                                                    <% }); %>
+                                                                </div>
+                                                            <% } %>
                                                     </div>
                                                     <small class="text-muted">
                                                         <% if (access.status==='approved' ) { %>
@@ -552,8 +574,16 @@
         } else {
             valueInput.value = '';
         }
-        // Reset environment to default and clear note
-        if (envSelect) envSelect.value = 'development';
+        // Reset environment to the currently selected one and clear note
+        if (envSelect) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentEnv = urlParams.get('environment') || 'production';
+            if (Array.from(envSelect.options).some(opt => opt.value === currentEnv)) {
+                envSelect.value = currentEnv;
+            } else {
+                envSelect.selectedIndex = 0;
+            }
+        }
         if (noteInput) noteInput.value = '';
         // Re-attach paste handlers (to avoid duplicated listeners from cloneNode)
         keyInput.removeEventListener('paste', handleEnvPaste);

@@ -67,7 +67,7 @@ const Project = {
      */
     async findSharedWithUser(userId) {
         const [rows] = await db.query(
-            `SELECT p.*, pa.permission, pa.status, u.email as owner_email, u.name as owner_name, u.username as owner_username
+            `SELECT p.*, pa.permission, pa.status, pa.environments, u.email as owner_email, u.name as owner_name, u.username as owner_username
              FROM projects p
              JOIN project_access pa ON pa.project_id = p.id
              JOIN users u ON u.id = p.user_id
@@ -75,7 +75,10 @@ const Project = {
              ORDER BY pa.created_at DESC`,
             [userId, 'approved']
         );
-        return rows;
+        return rows.map(row => ({
+            ...row,
+            environments: row.environments ? row.environments.split(',').map(e => e.trim()).filter(Boolean) : []
+        }));
     },
 
     /**

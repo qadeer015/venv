@@ -1,19 +1,43 @@
 // models/ProjectAccess.js
 const db = require('../config/db');
 
+const VALID_ENVIRONMENTS = ['development', 'staging', 'production'];
+
 const ProjectAccess = {
+    /**
+     * Parse environments string into an array
+     */
+    parseEnvironments(environments) {
+        if (!environments) return [];
+        if (Array.isArray(environments)) return environments;
+        return environments.split(',').map(e => e.trim()).filter(e => VALID_ENVIRONMENTS.includes(e));
+    },
+
+    /**
+     * Serialize environments array into a comma-separated string
+     */
+    serializeEnvironments(environments) {
+        if (!environments) return 'development,staging,production';
+        if (Array.isArray(environments)) {
+            return environments.filter(e => VALID_ENVIRONMENTS.includes(e)).join(',');
+        }
+        return environments;
+    },
+
     /**
      * Create an access request or grant direct access
      */
-    async create({ projectId, userId, permission = 'view', status = 'pending', expiresAt = null }) {
+    async create({ projectId, userId, permission = 'view', status = 'pending', expiresAt = null, environments = null }) {
+        const envStr = this.serializeEnvironments(environments);
         const [result] = await db.query(
-            `INSERT INTO project_access (project_id, user_id, permission, status, expires_at)
-             VALUES (?, ?, ?, ?, ?)
+            `INSERT INTO project_access (project_id, user_id, permission, environments, status, expires_at)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE 
                  permission = VALUES(permission), 
+                 environments = VALUES(environments),
                  status = VALUES(status),
                  expires_at = VALUES(expires_at)`,
-            [projectId, userId, permission, status, expiresAt]
+            [projectId, userId, permission, envStr, status, expiresAt]
         );
         return result.insertId;
     },
@@ -31,20 +55,33 @@ const ProjectAccess = {
              WHERE pa.id = ?`,
             [id]
         );
+        if (rows[0]) {
+            rows[0].environments = this.parseEnvironments(rows[0].environments);
+        }
         return rows[0] || null;
     },
 
     /**
-     * Check if a user has access to a project
+     * Check if a user has access to a project and a specific environment
      */
-    async hasAccess(projectId, userId) {
+    async hasAccess(projectId, userId, environment = null) {
         const [rows] = await db.query(
             `SELECT * FROM project_access
              WHERE project_id = ? AND user_id = ? AND status = ?
              LIMIT 1`,
             [projectId, userId, 'approved']
         );
-        return rows[0] || null;
+        const access = rows[0] || null;
+        if (!access) return null;
+
+        // If environment is specified, check if user has access to that environment
+        if (environment) {
+            const envs = this.parseEnvironments(access.environments);
+            if (!envs.includes(environment)) return null;
+        }
+
+        access.environments = this.parseEnvironments(access.environments);
+        return access;
     },
 
     /**
@@ -59,7 +96,10 @@ const ProjectAccess = {
              ORDER BY pa.created_at DESC`,
             [projectId]
         );
-        return rows;
+        return rows.map(row => ({
+            ...row,
+            environments: this.parseEnvironments(row.environments)
+        }));
     },
 
     /**
@@ -76,7 +116,10 @@ const ProjectAccess = {
              ORDER BY pa.created_at DESC`,
             [userId]
         );
-        return rows;
+        return rows.map(row => ({
+            ...row,
+            environments: this.parseEnvironments(row.environments)
+        }));
     },
 
     /**
@@ -95,7 +138,10 @@ const ProjectAccess = {
              ORDER BY pa.created_at DESC`,
             [userId, 'pending']
         );
-        return rows;
+        return rows.map(row => ({
+            ...row,
+            environments: this.parseEnvironments(row.environments)
+        }));
     },
 
     /**
@@ -116,6 +162,9 @@ const ProjectAccess = {
              LIMIT 1`,
             [projectId, userId, 'invited']
         );
+        if (rows[0]) {
+            rows[0].environments = this.parseEnvironments(rows[0].environments);
+        }
         return rows[0] || null;
     },
 
@@ -141,7 +190,10 @@ const ProjectAccess = {
         query += ' ORDER BY pa.created_at DESC';
 
         const [rows] = await db.query(query, params);
-        return rows;
+        return rows.map(row => ({
+            ...row,
+            environments: this.parseEnvironments(row.environments)
+        }));
     },
 
     /**
@@ -176,6 +228,18 @@ const ProjectAccess = {
         const [result] = await db.query(
             'UPDATE project_access SET permission = ? WHERE id = ?',
             [permission, id]
+        );
+        return result.affectedRows > 0;
+    },
+
+    /**
+     * Update environments for an access record
+     */
+    async updateEnvironments(id, environments) {
+        const envStr = this.serializeEnvironments(environments);
+        const [result] = await db.query(
+            'UPDATE project_access SET environments = ? WHERE id = ?',
+            [envStr, id]
         );
         return result.affectedRows > 0;
     },

@@ -43,6 +43,23 @@
                 </span>
             </p>
 
+            <!-- Environments Access -->
+            <% if (invitation.environments && invitation.environments.length > 0) { %>
+                <div class="mb-4">
+                    <small class="text-muted d-block mb-2">
+                        <i class="bi bi-layers me-1"></i>Environments you'll have access to:
+                    </small>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <% invitation.environments.forEach(function(env) { %>
+                            <span class="badge bg-dark border border-secondary text-light px-3 py-2">
+                                <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
+                                <%= env.charAt(0).toUpperCase() + env.slice(1) %>
+                            </span>
+                        <% }); %>
+                    </div>
+                </div>
+            <% } %>
+
             <!-- Invitation Details -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-6">
@@ -101,7 +118,13 @@
             <p class="text-muted small mt-4 mb-0">
                 <i class="bi bi-shield-check me-1"></i>
                 By accepting, you will be granted
-                <strong><%= invitation.permission %> access</strong> to this project.
+                <strong><%= invitation.permission %> access</strong>
+                <% if (invitation.environments && invitation.environments.length > 0) { %>
+                    to
+                    <strong><%= invitation.environments.length %></strong>
+                    environment<%= invitation.environments.length > 1 ? 's' : '' %>
+                <% } %>
+                on this project.
             </p>
         </div>
     </div>

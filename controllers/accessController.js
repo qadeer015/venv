@@ -5,6 +5,7 @@ const ProjectAccess = require('../models/ProjectAccess');
 const AppError = require('../utils/AppError');
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+const VALID_ENVIRONMENTS = ['development', 'staging', 'production'];
 
 const accessController = {
     // ── POST: Request access to a project ───────────────────────────
@@ -44,7 +45,8 @@ const accessController = {
                 projectId: project.id,
                 userId: req.user.id,
                 permission: 'view',
-                status: 'pending'
+                status: 'pending',
+                environments: VALID_ENVIRONMENTS
             });
 
             res.redirect(`/${username}/${projectSlug}`);
@@ -70,10 +72,20 @@ const accessController = {
                 throw AppError.forbidden('Only the project owner can invite users');
             }
 
-            const { identifier, permission } = req.body;
+            const { identifier, permission, environments } = req.body;
 
             if (!identifier || !identifier.trim()) {
                 throw AppError.badRequest('Username or email is required');
+            }
+
+            // Validate environments
+            let selectedEnvironments = [];
+            if (environments) {
+                selectedEnvironments = Array.isArray(environments) ? environments : [environments];
+            }
+            selectedEnvironments = selectedEnvironments.filter(e => VALID_ENVIRONMENTS.includes(e));
+            if (selectedEnvironments.length === 0) {
+                throw AppError.badRequest('Please select at least one environment');
             }
 
             // Search for user by email or username
@@ -110,7 +122,8 @@ const accessController = {
                 userId: targetUser.id,
                 permission: permission || 'view',
                 status: 'invited',
-                expiresAt
+                expiresAt,
+                environments: selectedEnvironments
             });
 
             req.session.success = 'Invitation sent successfully! The invite expires in 1 week.';
@@ -236,10 +249,20 @@ const accessController = {
                 throw AppError.forbidden('Only the project owner can grant access');
             }
 
-            const { email, permission } = req.body;
+            const { email, permission, environments } = req.body;
 
             if (!email || !email.trim()) {
                 throw AppError.badRequest('User email is required');
+            }
+
+            // Validate environments
+            let selectedEnvironments = [];
+            if (environments) {
+                selectedEnvironments = Array.isArray(environments) ? environments : [environments];
+            }
+            selectedEnvironments = selectedEnvironments.filter(e => VALID_ENVIRONMENTS.includes(e));
+            if (selectedEnvironments.length === 0) {
+                throw AppError.badRequest('Please select at least one environment');
             }
 
             const targetUser = await User.findByEmail(email.trim());
@@ -255,7 +278,8 @@ const accessController = {
                 projectId: project.id,
                 userId: targetUser.id,
                 permission: permission || 'view',
-                status: 'approved'
+                status: 'approved',
+                environments: selectedEnvironments
             });
 
             res.redirect(`/${username}/${projectSlug}/settings`);
@@ -319,6 +343,56 @@ const accessController = {
 
             await ProjectAccess.updateStatus(access.id, 'rejected');
 
+            res.redirect(`/${username}/${projectSlug}/settings`);
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    // ── POST: Update access environments (owner action) ─────────────
+    async updateAccessEnvironments(req, res, next) {
+        try {
+            if (!req.user) {
+                throw AppError.unauthorized();
+            }
+
+            const { username, projectSlug } = req.params;
+            const project = await Project.findByUsernameAndSlug(username, projectSlug);
+            if (!project) {
+                throw AppError.notFound('Project');
+            }
+
+            // Only project owner can update access
+            if (project.user_id !== req.user.id) {
+                throw AppError.forbidden('Only the project owner can update access');
+            }
+
+            const access = await ProjectAccess.findById(req.params.accessId);
+            if (!access || access.project_id !== project.id) {
+                throw AppError.notFound('Access record');
+            }
+
+            const { permission, environments } = req.body;
+
+            // Validate environments
+            let selectedEnvironments = [];
+            if (environments) {
+                selectedEnvironments = Array.isArray(environments) ? environments : [environments];
+            }
+            selectedEnvironments = selectedEnvironments.filter(e => VALID_ENVIRONMENTS.includes(e));
+            if (selectedEnvironments.length === 0) {
+                throw AppError.badRequest('Please select at least one environment');
+            }
+
+            // Update permission if provided
+            if (permission && ['view', 'edit'].includes(permission)) {
+                await ProjectAccess.updatePermission(access.id, permission);
+            }
+
+            // Update environments
+            await ProjectAccess.updateEnvironments(access.id, selectedEnvironments);
+
+            req.session.success = 'Access updated successfully';
             res.redirect(`/${username}/${projectSlug}/settings`);
         } catch (err) {
             next(err);
