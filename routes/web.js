@@ -31,7 +31,7 @@ router.delete('/:username/:projectSlug', projectController.delete);
 
 
 // ── Profile Routes ────────────────────────────────────────────────────────
-router.get('/:username', profileController.showProfile);
+router.get('/:username', profileController.dashboard);
 router.post('/:username/avatar', profileController.updateAvatar);
 
 // ── Environment Variable Routes ──────────────────────────────────────
@@ -57,6 +57,6 @@ router.delete('/:username/:projectSlug/access/:accessId', accessController.revok
 router.get('/api/users/search', accessController.searchUsers);
 
 // ── Root ────────────────────────────────────────────────────
-router.get('/', projectController.dashboard);
+router.get('/', profileController.dashboard);
 
 module.exports = router;

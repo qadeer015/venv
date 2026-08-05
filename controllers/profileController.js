@@ -1,5 +1,8 @@
 // controllers/profileController.js
 const User = require('../models/User');
+const Project = require('../models/Project');
+const ProjectAccess = require('../models/ProjectAccess');
+
 const AppError = require('../utils/AppError');
 
 // List of available avatars
@@ -12,20 +15,29 @@ const AVATARS = [
 ];
 
 const profileController = {
-    // ── GET: Show user profile page ──────────────────────────────────
-    async showProfile(req, res, next) {
-        try {
-            if (!req.user) return res.redirect('/auth/login');
 
-            // Fetch full user data from DB
+    // ── GET: Dashboard - List all projects ──────────────────────────
+    async dashboard(req, res, next) {
+        try {
+            if (!req.user) return res.render('landing');
+
+            const [ownedProjects, sharedProjects, pendingRequests, pendingInvitations] = await Promise.all([
+                Project.findByUserId(req.user.id),
+                Project.findSharedWithUser(req.user.id),
+                ProjectAccess.findPendingByOwner(req.user.id),
+                ProjectAccess.findPendingInvitationsForUser(req.user.id)
+            ]);
+
+            // Fetch full user data to ensure username is available
             const user = await User.findById(req.user.id);
-            if (!user) {
-                throw AppError.notFound('User');
-            }
-            console.log('Rendering profile page for user:', AVATARS);
-            res.render('profile/index', {
-                title: 'Profile',
+
+            res.render('dashboard/index', {
+                title: 'Dashboard',
                 user,
+                ownedProjects,
+                sharedProjects,
+                pendingRequests,
+                pendingInvitations,
                 avatars: AVATARS
             });
         } catch (err) {
