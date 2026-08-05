@@ -1,6 +1,13 @@
 // controllers/onboardingController.js
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
+const avatars = [
+    '/avatars/Avatar1.svg',
+    '/avatars/Avatar2.svg',
+    '/avatars/Avatar3.svg',
+    '/avatars/Avatar4.svg',
+    '/avatars/Avatar5.svg'
+];
 
 const onboardingController = {
     // ── GET: Show Onboarding Page ────────────────────────────────────
@@ -39,6 +46,7 @@ const onboardingController = {
             await User.updateProfile(req.user.id, {
                 name: name.trim(),
                 username: username.trim().toLowerCase(),
+                avatar: avatars[Math.abs(Math.round(Math.random() * avatars.length - 1))],
                 organization: organization ? organization.trim() : null
             });
 
