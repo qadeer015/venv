@@ -40,7 +40,7 @@ const authenticate = async (req, res, next) => {
                 return res.redirect('/auth/login');
             }
             
-            req.user = decoded;
+            req.user = user;
             return next();
         } catch (err) {
             // Token is invalid, clear cookie and continue
@@ -61,14 +61,19 @@ const authenticate = async (req, res, next) => {
  * Optional authentication - sets user if authenticated via JWT,
  * but doesn't block if not authenticated
  */
-const optionalAuthenticate = (req, res, next) => {
+const optionalAuthenticate = async (req, res, next) => {
     // Try JWT token first
     const token = req.cookies?.token || req.headers['authorization']?.split(' ')[1] || req.query.token;
 
     if (token) {
         try {
-            const user = jwt.verify(token, process.env.JWT_SECRET || process.env.SECRET_KEY);
-            req.user = user;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || process.env.SECRET_KEY);
+            
+            // Fetch full user from DB to get latest data (avatar, name, etc.)
+            const user = await User.findById(decoded.id);
+            if (user && user.status === 'active') {
+                req.user = user;
+            }
             return next();
         } catch (err) {
             // Token invalid, continue without error

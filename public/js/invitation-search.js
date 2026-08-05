@@ -31,19 +31,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 // Display search results
-                searchResults.innerHTML = users.map(user => `
+                searchResults.innerHTML = users.map(user => {
+                    const avatarHtml = user.avatar
+                        ? `<img src="${user.avatar}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;" alt="${user.username || 'User'} Avatar">`
+                        : `<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-size: 1.2rem; color: #6c757d;">
+                                <i class="bi bi-person-fill"></i>
+                           </div>`;
+                    return `
                     <button type="button" class="list-group-item list-group-item-action bg-dark text-light border-secondary user-select-item" data-email="${user.email}" data-username="${user.username || ''}">
                         <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-size: 1.2rem; color: #6c757d;">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
+                            ${avatarHtml}
                             <div class="text-start">
                                 <div class="fw-semibold">${user.username || 'No username'}</div>
                                 <small class="text-muted">${user.email}</small>
                             </div>
                         </div>
                     </button>
-                `).join('');
+                `;
+                }).join('');
                 
                 searchResults.style.display = 'block';
 

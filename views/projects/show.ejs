@@ -1,913 +1,936 @@
 <div class="container py-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/<%= isOwner ? user.username : owner.username %>"
-                    class="text-success text-decoration-none"><%=  isOwner ? user.username : owner.username %></a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-                <%= project.name %>
-            </li>
-        </ol>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/<%= isOwner ? user.username : owner.username %>" class="text-success text-decoration-none">
+          <img src="<%= isOwner ? user.avatar : owner.avatar %>" class="rounded-circle me-1" style="width: 24px; height: 24px; object-fit: cover;" alt="<%= isOwner ? user.username : owner.username %> Avatar">
+          <%= isOwner ? user.username : owner.username %>
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        <%= project.name %>
+      </li>
+    </ol>
+  </nav>
 
-    <% if (typeof error !=='undefined' && error) { %>
-        <div class="alert alert-danger">
-            <%= error %>
+  <!-- Project Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="fw-bold mb-1">
+        <%= project.name %>
+      </h1>
+      <% if (!isOwner) { %>
+      <p class="text-muted mb-0">
+        Shared by
+        <a href="/<%= owner.name %>/<%= project.name %>" class="text-primary border-0 btn-sm">
+          <%= owner.username %>/<%= project.name %>
+        </a>
+      </p>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Environment Variables Section -->
+    <div class="col-lg-8">
+      <div class="row align-items-center mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+
+          <!-- Environment Split Button -->
+          <div class="btn-group">
+
+            <button type="button" class="btn btn-dark border-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-layers me-2"></i>
+              <%= selectedEnvironment.charAt(0).toUpperCase() +
+                                                selectedEnvironment.slice(1) %>
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-dark" style="min-width:250px;">
+              <% if (accessibleEnvironments.includes('development')) { %>
+              <li>
+                <a class="dropdown-item <%= selectedEnvironment==='development' ? 'active' : '' %>" href="?environment=development">
+                  <i class="bi bi-code-slash me-2"></i>
+                  Development
+                </a>
+              </li>
+              <% } %>
+
+              <% if (accessibleEnvironments.includes('staging')) { %>
+              <li>
+                <a class="dropdown-item <%= selectedEnvironment==='staging' ? 'active' : '' %>" href="?environment=staging">
+                  <i class="bi bi-bezier2 me-2"></i>
+                  Staging
+                </a>
+              </li>
+              <% } %>
+
+              <% if (accessibleEnvironments.includes('production')) { %>
+              <li>
+                <a class="dropdown-item <%= selectedEnvironment==='production' ? 'active' : '' %>" href="?environment=production">
+                  <i class="bi bi-globe me-2"></i>
+                  Production
+                </a>
+              </li>
+              <% } %>
+            </ul>
+
+          </div>
+
+          <!-- Export Split Button -->
+          <div class="btn-group">
+
+            <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-download me-2"></i>
+              Export
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" style="min-width:200px;">
+
+              <li>
+                <button class="dropdown-item" onclick="copyAllToClipboard()">
+                  <i class="bi bi-clipboard me-2"></i>
+                  Copy all
+                </button>
+              </li>
+
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+
+              <li>
+                <button class="dropdown-item" onclick="exportEnvVars('env')">
+                  <i class="bi bi-file-earmark-code me-2"></i>
+                  Export .env
+                </button>
+              </li>
+
+              <li>
+                <button class="dropdown-item" onclick="exportEnvVars('json')">
+                  <i class="bi bi-filetype-json me-2"></i>
+                  Export JSON
+                </button>
+              </li>
+
+              <li>
+                <button class="dropdown-item" onclick="exportEnvVars('yml')">
+                  <i class="bi bi-filetype-yml me-2"></i>
+                  Export YAML
+                </button>
+              </li>
+
+            </ul>
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card bg-dark border-secondary">
+        <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment
+            Variables</h5>
+          <span class="badge bg-warning text-dark" id="env-count-badge">
+            <%= envVars.length %>
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <% if (envVars.length===0) { %>
+          <div class="text-center py-5">
+            <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-3 mb-0">No environment variables yet</p>
+            <small class="text-muted">Add your first key-value pair below</small>
+          </div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+              <thead>
+                <tr>
+                  <th class="border-secondary" style="width: 25%;">Key</th>
+                  <th class="border-secondary">Value</th>
+                  <th class="border-secondary" style="width: 20%;">Note</th>
+                  <th class="border-secondary text-end" style="width: 80px;">
+                    Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% envVars.forEach(function(env) { %>
+                <tr>
+                  <td class="align-middle">
+                    <code class="text-warning"><%= env.env_key %></code>
+                  </td>
+                  <td class="align-middle">
+                    <div class="d-flex align-items-center gap-2">
+                      <code class="env-value text-muted" id="env-value-<%= env.id %>" data-env-value="<%= encodeURIComponent(env.env_value) %>">
+                        ••••••••••••••••••••••••••••••
+                      </code>
+                      <button class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn" data-env-id="<%= env.id %>" title="Toggle visibility">
+                        <i class="bi bi-eye" id="eye-icon-<%= env.id %>"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary border-0" onclick="copyEnvValue(this, '<%= env.id %>')" title="Copy value" data-env-value="<%= env.env_value %>">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="align-middle">
+                    <% if (env.note) { %>
+                    <small class="text-muted">
+                      <%= env.note %>
+                    </small>
+                    <% } else { %>
+                    <small class="text-muted opacity-50">—</small>
+                    <% } %>
+                  </td>
+                  <td class="align-middle text-end">
+                    <% if (isOwner || (userAccess &&
+                                                                        userAccess.permission==='edit' )) { %>
+                    <form action="/<%= owner.username %>/<%= project.slug %>/environments/<%= env.id %>?_method=DELETE" method="POST" class="d-inline" onsubmit="return confirm('Delete this environment variable?')">
+                      <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Delete">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </form>
+                    <% } %>
+                  </td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Add Environment Variables Form (Bulk) -->
+      <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
+      <div class="card bg-dark border-secondary mt-4">
+        <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
+            Environment Variables</h5>
+          <span class="badge bg-success" id="env-count-badge">0</span>
+        </div>
+        <div class="card-body p-4">
+          <form id="envVarsForm" action="/<%= owner.username %>/<%= project.slug %>/environments/bulk" method="POST">
+            <div id="envVarsContainer">
+              <!-- First row -->
+              <div class="env-var-row mb-4">
+                <div class="mb-2">
+                  <label class="form-label text-muted small">Key</label>
+                  <div class="position-relative">
+                    <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-key" name="envVars[0][key]" required placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*" title="Uppercase letters, numbers, and underscores">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2" disabled>
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label text-muted small">Value</label>
+                  <div class="position-relative">
+                    <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-value" name="envVars[0][value]" placeholder="mysql://user:pass@host/db">
+                    <button type="button" class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn" data-env-id="">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label text-muted small">Environment</label>
+                  <select class="form-select bg-dark text-light border-secondary env-environment" name="envVars[0][environment]">
+                    <% if (accessibleEnvironments.includes('development')) { %>
+                    <option value="development" <%=selectedEnvironment==='development' ? 'selected'
+                                                                    : '' %>>Development</option>
+                    <% } %>
+                    <% if (accessibleEnvironments.includes('staging')) {
+                                                                        %>
+                    <option value="staging" <%=selectedEnvironment==='staging'
+                                                                            ? 'selected' : '' %>>Staging</option>
+                    <% } %>
+                    <% if
+                                                                                (accessibleEnvironments.includes('production'))
+                                                                                { %>
+                    <option value="production" <%=selectedEnvironment==='production'
+                                                                                    ? 'selected' : '' %>>Production
+                    </option>
+                    <% } %>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label text-muted small">Note <span class="text-muted">(Optional)</span></label>
+                  <input type="text" class="form-control bg-dark text-light border-secondary env-note" name="envVars[0][note]" placeholder="Where to rotate, or who to contact">
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <button type="button" id="addEnvRow" class="btn btn-outline-success">
+                <i class="bi bi-plus-lg"></i> Add Another
+              </button>
+              <button type="button" id="importEnvBtn" class="btn btn-outline-info ms-2">
+                <i class="bi bi-upload"></i> Import .env
+              </button>
+              <input type="file" id="envFileInput" accept=".env,.txt" style="display:none">
+            </div>
+            <div class="mt-3 text-end">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-save"></i> Save All
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Access Management Sidebar -->
+    <div class="col-lg-4">
+      <!-- About Info -->
+      <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header bg-dark border-secondary">
+          <div class="d-flex align-items-center justify-content-between">
+            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h5>
+            <% if (isOwner) { %>
+            <a href="/<%= owner.username %>/<%= project.slug %>/settings" class="btn btn-outline-secondary border-0 btn-sm">
+              <i class="bi bi-gear"></i>
+            </a>
+            <% } %>
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="mb-0">
+            <div class="mb-3">
+              <small>
+                <%= project.description || 'No description provided' %>
+              </small>
+            </div>
+            <div class="mb-1">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-gear-fill me-1"></i>
+                <div class="me-2 text-muted small">
+                  <%= envVars.length %> credentials
+                </div>
+              </div>
+            </div>
+            <div class="mb-1">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-github me-1"></i>
+                <div class="me-2 text-muted small">
+                  <% if (project.github_url) { %>
+                  <a href="<%= project.github_url %>" target="_blank" class="text-muted text-decoration-none">
+                    <%= project.github_url?.replace('https://github.com/', '' )
+                                                                %>
+                  </a>
+                  <% } else { %>
+                  <span class="text-muted">No GitHub URL provided</span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-1">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-globe me-1"></i>
+                <div class="me-2 text-muted small">
+                  <% if (project.domain) { %>
+                  <a href="<%= project.domain %>" target="_blank" class="text-muted text-decoration-none">
+                    <%= project.domain?.replace('https://', '' ) %>
+                  </a>
+                  <% } else { %>
+                  <span class="text-muted">No domain provided</span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-1 mt-2">
+              <dt class="text-muted small">Timestamp</dt>
+              <div class="mt-1">
+                <dd class="mb-1 text-muted small">
+                  Created
+                  <span class="text-primary">
+                    <%= new Date(project.created_at).toLocaleString() %>
+                  </span>
+                </dd>
+                <dd class="mb-1 text-muted small">
+                  Last updated
+                  <span class="text-primary text-decoration-underline">
+                    <%= new Date(project.updated_at).toLocaleString() %>
+                  </span>
+                </dd>
+              </div>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <!-- People with Access -->
+      <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header bg-dark border-secondary">
+          <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>People with Access
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            <!-- Owner -->
+            <div class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <% if (owner.avatar) { %>
+                <img src="<%= owner.avatar %>" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" alt="<%= owner.username || 'Owner' %> Avatar">
+                <% } else { %>
+                <i class="bi bi-person-fill text-secondary me-2" style="font-size: 1.2rem;"></i>
+                <% } %>
+                <small>
+                  <%= owner.name || owner.email %>
+                </small>
+                <span class="badge bg-warning text-dark ms-1">Owner</span>
+              </div>
+              <small class="text-muted">
+                <i class="bi bi-shield-check me-1"></i>Full access
+              </small>
+            </div>
+            <!-- Access List -->
+            <div class="list-group-item bg-dark text-light border-secondary px-3">
+              <% if (accessList.length> 0) { %>
+              <% accessList.forEach(function(access) { %>
+              <div class="d-flex align-items-center">
+                <% if (access.avatar) { %>
+                <img src="<%= access.avatar %>" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" alt="<%= access.username || 'User' %> Avatar">
+                <% } else { %>
+                <i class="bi bi-person-fill text-secondary me-2" style="font-size: 1.2rem;"></i>
+                <% } %>
+                <div>
+                  <small>
+                    <%= access.user_name || access.email %>
+                  </small>
+                  <% if (access.status==='approved' ) { %>
+                  <span class="badge bg-<%= access.permission === 'edit' ? 'warning' : 'secondary' %> ms-1">
+                    <%= access.permission==='edit' ? 'Edit'
+                                                                                    : 'View' %>
+                  </span>
+                  <% } else { %>
+                  <span class="badge bg-<%= access.status === 'pending' ? 'info' : 'danger' %> ms-1">
+                    <%= access.status %>
+                  </span>
+                  <% } %>
+                  <% if (access.environments &&
+                                                                                        access.environments.length> 0) {
+                                                                                        %>
+                  <div class="mt-1">
+                    <% access.environments.forEach(function(env)
+                                                                                                { %>
+                    <span class="badge bg-dark border border-secondary text-muted me-1">
+                      <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
+                      <%= env.charAt(0).toUpperCase()
+                                                                                                        + env.slice(1)
+                                                                                                        %>
+                    </span>
+                    <% }); %>
+                  </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">
+                  <% if (access.status==='approved' ) { %>
+                  <i class="bi bi-check-circle me-1"></i>Approved
+                  <% } else if (access.status==='pending' ) {
+                                                                                %>
+                  <i class="bi bi-hourglass me-1"></i>Pending
+                  <% } else { %>
+                  <i class="bi bi-x-circle me-1"></i>Rejected
+                  <% } %>
+                </small>
+              </div>
+              <% }); %>
+              <% } %>
+            </div>
+          </div>
+          <% if (isOwner && accessList.length> 0) { %>
+          <div class="card-footer bg-dark border-secondary text-center">
+            <a href="/<%= owner.username %>/<%= project.slug %>/settings" class="btn btn-outline-info btn-sm">
+              <i class="bi bi-gear me-1"></i> Manage Access
+            </a>
+          </div>
+          <% } %>
+        </div>
+        <!-- Request Access (non-owner) -->
+        <% if (!isOwner && !userAccess) { %>
+        <div class="card bg-dark border-secondary">
+          <div class="card-body text-center">
+            <p class="text-muted mb-3">You don't have access to this project yet</p>
+            <form action="/<%= owner.username %>/<%= project.slug %>/access/request" method="POST">
+              <button type="submit" class="btn btn-outline-info w-100">
+                <i class="bi bi-door-open me-1"></i> Request Access
+              </button>
+            </form>
+          </div>
         </div>
         <% } %>
+      </div>
+    </div>
+  </div>
 
-            <% if (typeof success !=='undefined' && success) { %>
-                <div class="alert alert-success">
-                    <%= success %>
-                </div>
-                <% } %>
-
-                    <!-- Project Header -->
-                    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
-                        <div>
-                            <h1 class="fw-bold mb-1">
-                                <%= project.name %>
-                            </h1>
-                            <% if (!isOwner) { %>
-                                <p class="text-muted mb-0">
-                                    Shared by
-                                    <a href="/<%= owner.name %>/<%= project.name %>"
-                                        class="text-primary border-0 btn-sm">
-                                        <%= owner.username %>/<%= project.name %>
-                                    </a>
-                                </p>
-                            <% } %>
-                        </div>
-                    </div>
-
-                    <div class="row g-4">
-                        <!-- Environment Variables Section -->
-                        <div class="col-lg-8">
-                            <div class="row align-items-center mb-3">
-                                <div class="col-12 d-flex justify-content-between align-items-center">
-                            
-                                    <!-- Environment Split Button -->
-                                    <div class="btn-group">
-                            
-                                        <button type="button" class="btn btn-dark border-secondary dropdown-toggle" data-bs-toggle="dropdown"
-                                            aria-expanded="false">
-                                            <i class="bi bi-layers me-2"></i>
-                                            <%= selectedEnvironment.charAt(0).toUpperCase() + selectedEnvironment.slice(1) %>
-                                        </button>
-                            
-                                        <ul class="dropdown-menu dropdown-menu-dark" style="min-width:250px;">
-                                            <% if (accessibleEnvironments.includes('development')) { %>
-                                            <li>
-                                                <a class="dropdown-item <%= selectedEnvironment==='development' ? 'active' : '' %>"
-                                                    href="?environment=development">
-                                                    <i class="bi bi-code-slash me-2"></i>
-                                                    Development
-                                                </a>
-                                            </li>
-                                            <% } %>
-                            
-                                            <% if (accessibleEnvironments.includes('staging')) { %>
-                                            <li>
-                                                <a class="dropdown-item <%= selectedEnvironment==='staging' ? 'active' : '' %>"
-                                                    href="?environment=staging">
-                                                    <i class="bi bi-bezier2 me-2"></i>
-                                                    Staging
-                                                </a>
-                                            </li>
-                                            <% } %>
-                            
-                                            <% if (accessibleEnvironments.includes('production')) { %>
-                                            <li>
-                                                <a class="dropdown-item <%= selectedEnvironment==='production' ? 'active' : '' %>"
-                                                    href="?environment=production">
-                                                    <i class="bi bi-globe me-2"></i>
-                                                    Production
-                                                </a>
-                                            </li>
-                                            <% } %>
-                                        </ul>
-                            
-                                    </div>
-                            
-                                    <!-- Export Split Button -->
-                                    <div class="btn-group">
-            
-                                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="bi bi-download me-2"></i>
-                                            Export
-                                        </button>
-            
-                                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" style="min-width:200px;">
-            
-                                            <li>
-                                                <button class="dropdown-item" onclick="copyAllToClipboard()">
-                                                    <i class="bi bi-clipboard me-2"></i>
-                                                    Copy all
-                                                </button>
-                                            </li>
-            
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-
-                                            <li>
-                                                <button class="dropdown-item" onclick="exportEnvVars('env')">
-                                                    <i class="bi bi-file-earmark-code me-2"></i>
-                                                    Export .env
-                                                </button>
-                                            </li>
-            
-                                            <li>
-                                                <button class="dropdown-item" onclick="exportEnvVars('json')">
-                                                    <i class="bi bi-filetype-json me-2"></i>
-                                                    Export JSON
-                                                </button>
-                                            </li>
-            
-                                            <li>
-                                                <button class="dropdown-item" onclick="exportEnvVars('yml')">
-                                                    <i class="bi bi-filetype-yml me-2"></i>
-                                                    Export YAML
-                                                </button>
-                                            </li>
-            
-                                        </ul>
-            
-                                    </div>
-                            
-                                </div>
-                            </div>
-
-                            <div class="card bg-dark border-secondary">
-                                <div
-                                    class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0"><i class="bi bi-key-fill text-warning me-2"></i>Environment
-                                        Variables</h5>
-                                    <span class="badge bg-warning text-dark" id="env-count-badge">
-                                        <%= envVars.length %>
-                                    </span>
-                                </div>
-                                <div class="card-body p-0">
-                                    <% if (envVars.length===0) { %>
-                                        <div class="text-center py-5">
-                                            <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
-                                            <p class="text-muted mt-3 mb-0">No environment variables yet</p>
-                                            <small class="text-muted">Add your first key-value pair below</small>
-                                        </div>
-                                        <% } else { %>
-                                            <div class="table-responsive">
-                                                <table class="table table-dark table-hover mb-0">
-                                                    <thead>
-                                                        <tr>
-                                                            <th class="border-secondary" style="width: 25%;">Key</th>
-                                                            <th class="border-secondary">Value</th>
-                                                            <th class="border-secondary" style="width: 20%;">Note</th>
-                                                            <th class="border-secondary text-end" style="width: 80px;">
-                                                                Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <% envVars.forEach(function(env) { %>
-                                                            <tr>
-                                                                <td class="align-middle">
-                                                                    <code class="text-warning"><%= env.env_key %></code>
-                                                                </td>
-                                                                <td class="align-middle">
-                                                                    <div class="d-flex align-items-center gap-2">
-                                                                        <code class="env-value text-muted"
-                                                                            id="env-value-<%= env.id %>"
-                                                                            data-env-value="<%= encodeURIComponent(env.env_value) %>">
-                                                ••••••••••••••••••••••••••••••
-                                            </code>
-                                                                        <button
-                                                                            class="btn btn-sm btn-outline-secondary border-0 toggle-env-btn"
-                                                                            data-env-id="<%= env.id %>"
-                                                                            title="Toggle visibility">
-                                                                            <i class="bi bi-eye"
-                                                                                id="eye-icon-<%= env.id %>"></i>
-                                                                        </button>
-                                                                        <button
-                                                                            class="btn btn-sm btn-outline-secondary border-0"
-                                                                            onclick="copyEnvValue(this, '<%= env.id %>')"
-                                                                            title="Copy value"
-                                                                            data-env-value="<%= env.env_value %>">
-                                                                            <i class="bi bi-clipboard"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                                <td class="align-middle">
-                                                                    <% if (env.note) { %>
-                                                                        <small class="text-muted">
-                                                                            <%= env.note %>
-                                                                        </small>
-                                                                        <% } else { %>
-                                                                            <small
-                                                                                class="text-muted opacity-50">—</small>
-                                                                            <% } %>
-                                                                </td>
-                                                                <td class="align-middle text-end">
-                                                                    <% if (isOwner || (userAccess &&
-                                                                        userAccess.permission==='edit' )) { %>
-                                                                        <form
-                                                                            action="/<%= owner.username %>/<%= project.slug %>/environments/<%= env.id %>?_method=DELETE"
-                                                                            method="POST" class="d-inline"
-                                                                            onsubmit="return confirm('Delete this environment variable?')">
-                                                                            <button type="submit"
-                                                                                class="btn btn-sm btn-outline-danger border-0"
-                                                                                title="Delete">
-                                                                                <i class="bi bi-x-lg"></i>
-                                                                            </button>
-                                                                        </form>
-                                                                        <% } %>
-                                                                </td>
-                                                            </tr>
-                                                            <% }); %>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <% } %>
-                                </div>
-                            </div>
-
-                            <!-- Add Environment Variables Form (Bulk) -->
-                            <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
-                                <div class="card bg-dark border-secondary mt-4">
-                                    <div
-                                        class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
-                                            Environment Variables</h5>
-                                        <span class="badge bg-success" id="env-count-badge">0</span>
-                                    </div>
-                                    <div class="card-body p-4">
-                                        <form id="envVarsForm"
-                                            action="/<%= owner.username %>/<%= project.slug %>/environments/bulk"
-                                            method="POST">
-                                            <div id="envVarsContainer">
-                                                <!-- First row -->
-                                                <div class="env-var-row mb-4">
-                                                    <div class="mb-2">
-                                                        <label class="form-label text-muted small">Key</label>
-                                                        <div class="position-relative">
-                                                            <input type="text"
-                                                                class="form-control bg-dark text-light border-secondary font-monospace env-key"
-                                                                name="envVars[0][key]" required
-                                                                placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*"
-                                                                title="Uppercase letters, numbers, and underscores">
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2"
-                                                                disabled>
-                                                                <i class="bi bi-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label text-muted small">Value</label>
-                                                        <div class="position-relative">
-                                                            <input type="text"
-                                                                class="form-control bg-dark text-light border-secondary font-monospace env-value"
-                                                                name="envVars[0][value]"
-                                                                placeholder="mysql://user:pass@host/db">
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn"
-                                                                data-env-id="">
-                                                                <i class="bi bi-eye"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label text-muted small">Environment</label>
-                                                        <select
-                                                            class="form-select bg-dark text-light border-secondary env-environment"
-                                                            name="envVars[0][environment]">
-                                                            <% if (accessibleEnvironments.includes('development')) { %>
-                                                            <option value="development" <%= selectedEnvironment === 'development' ? 'selected' : '' %>>Development</option>
-                                                            <% } %>
-                                                            <% if (accessibleEnvironments.includes('staging')) { %>
-                                                            <option value="staging" <%= selectedEnvironment === 'staging' ? 'selected' : '' %>>Staging</option>
-                                                            <% } %>
-                                                            <% if (accessibleEnvironments.includes('production')) { %>
-                                                            <option value="production" <%= selectedEnvironment === 'production' ? 'selected' : '' %>>Production</option>
-                                                            <% } %>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label text-muted small">Note <span
-                                                                class="text-muted">(Optional)</span></label>
-                                                        <input type="text"
-                                                            class="form-control bg-dark text-light border-secondary env-note"
-                                                            name="envVars[0][note]"
-                                                            placeholder="Where to rotate, or who to contact">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="mt-3">
-                                                <button type="button" id="addEnvRow" class="btn btn-outline-success">
-                                                    <i class="bi bi-plus-lg"></i> Add Another
-                                                </button>
-                                                <button type="button" id="importEnvBtn"
-                                                    class="btn btn-outline-info ms-2">
-                                                    <i class="bi bi-upload"></i> Import .env
-                                                </button>
-                                                <input type="file" id="envFileInput" accept=".env,.txt"
-                                                    style="display:none">
-                                            </div>
-                                            <div class="mt-3 text-end">
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="bi bi-save"></i> Save All
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                                <% } %>
-                        </div>
-
-                        <!-- Access Management Sidebar -->
-                        <div class="col-lg-4">
-                            <!-- About Info -->
-                            <div class="card bg-dark border-secondary mb-4">
-                                <div class="card-header bg-dark border-secondary">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h5>
-                                        <% if (isOwner) { %>
-                                            <a href="/<%= owner.username %>/<%= project.slug %>/settings"
-                                                class="btn btn-outline-secondary border-0 btn-sm">
-                                                <i class="bi bi-gear"></i>
-                                            </a>
-                                            <% } %>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <dl class="mb-0">
-                                        <div class="mb-3">
-                                            <small>
-                                                <%= project.description || 'No description provided' %>
-                                            </small>
-                                        </div>
-                                        <div class="mb-1">
-                                            <div class="d-flex align-items-center">
-                                                <i class="bi bi-gear-fill me-1"></i>
-                                                <div class="me-2 text-muted small">
-                                                    <%= envVars.length %> credentials
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mb-1">
-                                            <div class="d-flex align-items-center">
-                                                <i class="bi bi-github me-1"></i>
-                                                <div class="me-2 text-muted small">
-                                                    <% if (project.github_url) { %>
-                                                        <a href="<%= project.github_url %>" target="_blank"
-                                                            class="text-muted text-decoration-none">
-                                                            <%= project.github_url?.replace('https://github.com/', '' )
-                                                                %>
-                                                        </a>
-                                                        <% } else { %>
-                                                            <span class="text-muted">No GitHub URL provided</span>
-                                                            <% } %>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mb-1">
-                                            <div class="d-flex align-items-center">
-                                                <i class="bi bi-globe me-1"></i>
-                                                <div class="me-2 text-muted small">
-                                                    <% if (project.domain) { %>
-                                                        <a href="<%= project.domain %>" target="_blank"
-                                                            class="text-muted text-decoration-none">
-                                                            <%= project.domain?.replace('https://', '' ) %>
-                                                        </a>
-                                                        <% } else { %>
-                                                            <span class="text-muted">No domain provided</span>
-                                                            <% } %>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mb-1 mt-2">
-                                            <dt class="text-muted small">Timestamp</dt>
-                                            <div class="mt-1">
-                                                <dd class="mb-1 text-muted small">
-                                                    Created
-                                                    <span class="text-primary">
-                                                        <%= new Date(project.created_at).toLocaleString() %>
-                                                    </span>
-                                                </dd>
-                                                <dd class="mb-1 text-muted small">
-                                                    Last updated
-                                                    <span class="text-primary text-decoration-underline">
-                                                        <%= new Date(project.updated_at).toLocaleString() %>
-                                                    </span>
-                                                </dd>
-                                            </div>
-                                        </div>
-                                    </dl>
-                                </div>
-                            </div>
-
-                            <!-- People with Access -->
-                            <div class="card bg-dark border-secondary mb-4">
-                                <div class="card-header bg-dark border-secondary">
-                                    <h5 class="mb-0"><i class="bi bi-people-fill text-info me-2"></i>People with Access
-                                    </h5>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="list-group list-group-flush">
-                                        <!-- Owner -->
-                                        <div
-                                            class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <small>
-                                                    <%= owner.name || owner.email %>
-                                                </small>
-                                                <span class="badge bg-warning text-dark ms-1">Owner</span>
-                                            </div>
-                                            <small class="text-muted">
-                                                <i class="bi bi-shield-check me-1"></i>Full access
-                                            </small>
-                                        </div>
-                                        <!-- Access List -->
-                                        <% if (accessList.length> 0) { %>
-                                            <% accessList.forEach(function(access) { %>
-                                                <div
-                                                    class="list-group-item bg-dark text-light border-secondary px-3 d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <small>
-                                                            <%= access.user_name || access.email %>
-                                                        </small>
-                                                        <% if (access.status==='approved' ) { %>
-                                                            <span
-                                                                class="badge bg-<%= access.permission === 'edit' ? 'warning' : 'secondary' %> ms-1">
-                                                                <%= access.permission==='edit' ? 'Edit' : 'View' %>
-                                                            </span>
-                                                            <% } else { %>
-                                                                <span
-                                                                    class="badge bg-<%= access.status === 'pending' ? 'info' : 'danger' %> ms-1">
-                                                                    <%= access.status %>
-                                                                </span>
-                                                                <% } %>
-                                                            <% if (access.environments && access.environments.length > 0) { %>
-                                                                <div class="mt-1">
-                                                                    <% access.environments.forEach(function(env) { %>
-                                                                        <span class="badge bg-dark border border-secondary text-muted me-1">
-                                                                            <i class="bi bi-<%= env === 'development' ? 'code-slash' : (env === 'staging' ? 'bezier2' : 'globe') %> me-1"></i>
-                                                                            <%= env.charAt(0).toUpperCase() + env.slice(1) %>
-                                                                        </span>
-                                                                    <% }); %>
-                                                                </div>
-                                                            <% } %>
-                                                    </div>
-                                                    <small class="text-muted">
-                                                        <% if (access.status==='approved' ) { %>
-                                                            <i class="bi bi-check-circle me-1"></i>Approved
-                                                            <% } else if (access.status==='pending' ) { %>
-                                                                <i class="bi bi-hourglass me-1"></i>Pending
-                                                                <% } else { %>
-                                                                    <i class="bi bi-x-circle me-1"></i>Rejected
-                                                                    <% } %>
-                                                    </small>
-                                                </div>
-                                                <% }); %>
-                                                    <% } %>
-                                    </div>
-                                </div>
-                                <% if (isOwner && accessList.length> 0) { %>
-                                    <div class="card-footer bg-dark border-secondary text-center">
-                                        <a href="/<%= owner.username %>/<%= project.slug %>/settings"
-                                            class="btn btn-outline-info btn-sm">
-                                            <i class="bi bi-gear me-1"></i> Manage Access
-                                        </a>
-                                    </div>
-                                    <% } %>
-                            </div>
-                            <!-- Request Access (non-owner) -->
-                            <% if (!isOwner && !userAccess) { %>
-                                <div class="card bg-dark border-secondary">
-                                    <div class="card-body text-center">
-                                        <p class="text-muted mb-3">You don't have access to this project yet</p>
-                                        <form action="/<%= owner.username %>/<%= project.slug %>/access/request"
-                                            method="POST">
-                                            <button type="submit" class="btn btn-outline-info w-100">
-                                                <i class="bi bi-door-open me-1"></i> Request Access
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                                <% } %>
-                        </div>
-                    </div>
-</div>
-
-<script>
+  <script>
     function copyEnvValue(button, id) {
-        // Get the value from the data attribute (HTML-encoded, so we decode it)
-        const encoded = button.getAttribute('data-env-value');
-        const textarea = document.createElement('textarea');
-        textarea.innerHTML = encoded;
-        const value = textarea.value;
+      // Get the value from the data attribute (HTML-encoded, so we decode it)
+      const encoded = button.getAttribute('data-env-value');
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = encoded;
+      const value = textarea.value;
 
-        // Try the modern Clipboard API first
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(value).then(() => {
-                showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
-            }).catch(() => {
-                fallbackCopy(value);
-            });
-        } else {
-            fallbackCopy(value);
-        }
+      // Try the modern Clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value).then(() => {
+          showToast('Copied to clipboard!', {
+            type: 'success',
+            duration: 2000,
+            position: 'bottom-end'
+          });
+        }).catch(() => {
+          fallbackCopy(value);
+        });
+      } else {
+        fallbackCopy(value);
+      }
     }
 
     function fallbackCopy(value) {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'top-center' });
-        } catch (e) {
-            showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
-        }
-        document.body.removeChild(textarea);
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!', {
+          type: 'success',
+          duration: 2000,
+          position: 'top-center'
+        });
+      } catch (e) {
+        showToast('Failed to copy. Please select and copy manually.', {
+          type: 'danger',
+          duration: 3000,
+          position: 'bottom-end'
+        });
+      }
+      document.body.removeChild(textarea);
     }
 
     // ── Dynamic Environment Variables Form ─────────────────────────
     function updateEnvRowIndices() {
-        const rows = document.querySelectorAll('#envVarsContainer .env-var-row');
-        rows.forEach(function (row, index) {
-            const keyInput = row.querySelector('.env-key');
-            const valueInput = row.querySelector('.env-value');
-            const envSelect = row.querySelector('.env-environment');
-            const noteInput = row.querySelector('.env-note');
-            const removeBtn = row.querySelector('.remove-env-row');
-            if (keyInput) keyInput.name = 'envVars[' + index + '][key]';
-            if (valueInput) valueInput.name = 'envVars[' + index + '][value]';
-            if (envSelect) envSelect.name = 'envVars[' + index + '][environment]';
-            if (noteInput) noteInput.name = 'envVars[' + index + '][note]';
-            if (removeBtn) removeBtn.disabled = (rows.length <= 1);
-        });
-        const badge = document.getElementById('env-count-badge');
-        if (badge) badge.textContent = rows.length;
+      const rows = document.querySelectorAll('#envVarsContainer .env-var-row');
+      rows.forEach(function(row, index) {
+        const keyInput = row.querySelector('.env-key');
+        const valueInput = row.querySelector('.env-value');
+        const envSelect = row.querySelector('.env-environment');
+        const noteInput = row.querySelector('.env-note');
+        const removeBtn = row.querySelector('.remove-env-row');
+        if (keyInput) keyInput.name = 'envVars[' + index + '][key]';
+        if (valueInput) valueInput.name = 'envVars[' + index + '][value]';
+        if (envSelect) envSelect.name = 'envVars[' + index + '][environment]';
+        if (noteInput) noteInput.name = 'envVars[' + index + '][note]';
+        if (removeBtn) removeBtn.disabled = (rows.length <= 1);
+      });
+      const badge = document.getElementById('env-count-badge');
+      if (badge) badge.textContent = rows.length;
     }
 
     function addEnvRow(keyValue, valueValue) {
-        const container = document.getElementById('envVarsContainer');
-        const firstRow = container.querySelector('.env-var-row');
-        const newRow = firstRow.cloneNode(true);
-        // Clear inputs
-        const keyInput = newRow.querySelector('.env-key');
-        const valueInput = newRow.querySelector('.env-value');
-        const envSelect = newRow.querySelector('.env-environment');
-        const noteInput = newRow.querySelector('.env-note');
-        if (keyValue) {
-            keyInput.value = keyValue;
+      const container = document.getElementById('envVarsContainer');
+      const firstRow = container.querySelector('.env-var-row');
+      const newRow = firstRow.cloneNode(true);
+      // Clear inputs
+      const keyInput = newRow.querySelector('.env-key');
+      const valueInput = newRow.querySelector('.env-value');
+      const envSelect = newRow.querySelector('.env-environment');
+      const noteInput = newRow.querySelector('.env-note');
+      if (keyValue) {
+        keyInput.value = keyValue;
+      } else {
+        keyInput.value = '';
+      }
+      if (valueValue) {
+        valueInput.value = valueValue;
+      } else {
+        valueInput.value = '';
+      }
+      // Reset environment to the currently selected one and clear note
+      if (envSelect) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentEnv = urlParams.get('environment') || 'production';
+        if (Array.from(envSelect.options).some(opt => opt.value === currentEnv)) {
+          envSelect.value = currentEnv;
         } else {
-            keyInput.value = '';
+          envSelect.selectedIndex = 0;
         }
-        if (valueValue) {
-            valueInput.value = valueValue;
-        } else {
-            valueInput.value = '';
-        }
-        // Reset environment to the currently selected one and clear note
-        if (envSelect) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const currentEnv = urlParams.get('environment') || 'production';
-            if (Array.from(envSelect.options).some(opt => opt.value === currentEnv)) {
-                envSelect.value = currentEnv;
-            } else {
-                envSelect.selectedIndex = 0;
-            }
-        }
-        if (noteInput) noteInput.value = '';
-        // Re-attach paste handlers (to avoid duplicated listeners from cloneNode)
-        keyInput.removeEventListener('paste', handleEnvPaste);
-        keyInput.addEventListener('paste', handleEnvPaste);
-        valueInput.removeEventListener('paste', handleEnvPaste);
-        valueInput.addEventListener('paste', handleEnvPaste);
-        // Enable remove button (will be toggled by updateEnvRowIndices)
-        const removeBtn = newRow.querySelector('.remove-env-row');
-        removeBtn.disabled = false;
-        removeBtn.addEventListener('click', function () {
-            newRow.remove();
-            updateEnvRowIndices();
-        });
-        container.appendChild(newRow);
+      }
+      if (noteInput) noteInput.value = '';
+      // Re-attach paste handlers (to avoid duplicated listeners from cloneNode)
+      keyInput.removeEventListener('paste', handleEnvPaste);
+      keyInput.addEventListener('paste', handleEnvPaste);
+      valueInput.removeEventListener('paste', handleEnvPaste);
+      valueInput.addEventListener('paste', handleEnvPaste);
+      // Enable remove button (will be toggled by updateEnvRowIndices)
+      const removeBtn = newRow.querySelector('.remove-env-row');
+      removeBtn.disabled = false;
+      removeBtn.addEventListener('click', function() {
+        newRow.remove();
         updateEnvRowIndices();
+      });
+      container.appendChild(newRow);
+      updateEnvRowIndices();
     }
 
     function handleEnvPaste(e) {
-        // Get raw clipboard text before browser inserts it
-        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-        if (!pastedText) return;
+      // Get raw clipboard text before browser inserts it
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      if (!pastedText) return;
 
-        const lines = pastedText.split('\n');
-        var pairs = [];
+      const lines = pastedText.split('\n');
+      var pairs = [];
 
-        lines.forEach(function (line) {
-            line = line.trim();
-            if (!line) return;
-            var eqIndex = line.indexOf('=');
-            if (eqIndex > 0) {
-                var key = line.substring(0, eqIndex).trim();
-                var val = line.substring(eqIndex + 1).trim();
-                if (key) {
-                    pairs.push({ key: key, value: val });
-                }
-            }
-        });
-
-        if (pairs.length > 0) {
-            // Prevent default paste so the browser doesn't insert raw text
-            e.preventDefault();
-
-            if (pairs.length === 1) {
-                // Single pair — fill the current row
-                var row = e.target.closest('.env-var-row');
-                if (row) {
-                    var keyInput = row.querySelector('.env-key');
-                    var valueInput = row.querySelector('.env-value');
-                    if (keyInput) keyInput.value = pairs[0].key;
-                    if (valueInput) valueInput.value = pairs[0].value;
-                }
-            } else {
-                // Multiple pairs — fill current row with the first pair,
-                // then add new rows for the remaining pairs
-                pairs.forEach(function (pair, index) {
-                    if (index === 0) {
-                        var row = e.target.closest('.env-var-row');
-                        if (row) {
-                            var keyInput = row.querySelector('.env-key');
-                            var valueInput = row.querySelector('.env-value');
-                            if (keyInput) keyInput.value = pair.key;
-                            if (valueInput) valueInput.value = pair.value;
-                        }
-                    } else {
-                        addEnvRow(pair.key, pair.value);
-                    }
-                });
-            }
+      lines.forEach(function(line) {
+        line = line.trim();
+        if (!line) return;
+        var eqIndex = line.indexOf('=');
+        if (eqIndex > 0) {
+          var key = line.substring(0, eqIndex).trim();
+          var val = line.substring(eqIndex + 1).trim();
+          if (key) {
+            pairs.push({
+              key: key,
+              value: val
+            });
+          }
         }
+      });
+
+      if (pairs.length > 0) {
+        // Prevent default paste so the browser doesn't insert raw text
+        e.preventDefault();
+
+        if (pairs.length === 1) {
+          // Single pair — fill the current row
+          var row = e.target.closest('.env-var-row');
+          if (row) {
+            var keyInput = row.querySelector('.env-key');
+            var valueInput = row.querySelector('.env-value');
+            if (keyInput) keyInput.value = pairs[0].key;
+            if (valueInput) valueInput.value = pairs[0].value;
+          }
+        } else {
+          // Multiple pairs — fill current row with the first pair,
+          // then add new rows for the remaining pairs
+          pairs.forEach(function(pair, index) {
+            if (index === 0) {
+              var row = e.target.closest('.env-var-row');
+              if (row) {
+                var keyInput = row.querySelector('.env-key');
+                var valueInput = row.querySelector('.env-value');
+                if (keyInput) keyInput.value = pair.key;
+                if (valueInput) valueInput.value = pair.value;
+              }
+            } else {
+              addEnvRow(pair.key, pair.value);
+            }
+          });
+        }
+      }
     }
 
     // ── Environment Filter Change Handler ──────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        const envFilter = document.getElementById('environmentFilter');
-        if (envFilter) {
-            envFilter.addEventListener('change', function () {
-                const selectedEnv = this.value;
-                const currentUrl = new URL(window.location.href);
-                currentUrl.searchParams.set('environment', selectedEnv);
-                window.location.href = currentUrl.toString();
-            });
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+      const envFilter = document.getElementById('environmentFilter');
+      if (envFilter) {
+        envFilter.addEventListener('change', function() {
+          const selectedEnv = this.value;
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('environment', selectedEnv);
+          window.location.href = currentUrl.toString();
+        });
+      }
 
-        // Toggle environment variable visibility
-        document.querySelectorAll('.toggle-env-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var id = this.dataset.envId;
-                var el = document.getElementById('env-value-' + id);
-                var icon = document.getElementById('eye-icon-' + id);
-                if (el.textContent === '••••••••••••••••••••••••••••••') {
-                    el.textContent = decodeURIComponent(el.dataset.envValue);
-                    icon.className = 'bi bi-eye-slash';
-                } else {
-                    el.textContent = '••••••••••••••••••••••••••••••';
-                    icon.className = 'bi bi-eye';
-                }
-            });
+      // Toggle environment variable visibility
+      document.querySelectorAll('.toggle-env-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var id = this.dataset.envId;
+          var el = document.getElementById('env-value-' + id);
+          var icon = document.getElementById('eye-icon-' + id);
+          if (el.textContent === '••••••••••••••••••••••••••••••') {
+            el.textContent = decodeURIComponent(el.dataset.envValue);
+            icon.className = 'bi bi-eye-slash';
+          } else {
+            el.textContent = '••••••••••••••••••••••••••••••';
+            icon.className = 'bi bi-eye';
+          }
+        });
+      });
+
+      // ── Initialize environment variables form ──
+      const container = document.getElementById('envVarsContainer');
+      if (container) {
+        // Setup remove buttons for existing rows
+        container.querySelectorAll('.remove-env-row').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const row = btn.closest('.env-var-row');
+            row.remove();
+            updateEnvRowIndices();
+          });
+        });
+        // Setup paste handler on both key and value inputs
+        container.querySelectorAll('.env-key, .env-value').forEach(function(input) {
+          input.addEventListener('paste', handleEnvPaste);
+        });
+        updateEnvRowIndices();
+      }
+
+      // Add row button
+      const addBtn = document.getElementById('addEnvRow');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          addEnvRow('', '');
+        });
+      }
+
+      // ── Import .env file ──
+      const importBtn = document.getElementById('importEnvBtn');
+      const fileInput = document.getElementById('envFileInput');
+      if (importBtn && fileInput) {
+        importBtn.addEventListener('click', function() {
+          fileInput.click();
         });
 
-        // ── Initialize environment variables form ──
-        const container = document.getElementById('envVarsContainer');
-        if (container) {
-            // Setup remove buttons for existing rows
-            container.querySelectorAll('.remove-env-row').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    const row = btn.closest('.env-var-row');
-                    row.remove();
-                    updateEnvRowIndices();
-                });
-            });
-            // Setup paste handler on both key and value inputs
-            container.querySelectorAll('.env-key, .env-value').forEach(function (input) {
-                input.addEventListener('paste', handleEnvPaste);
-            });
-            updateEnvRowIndices();
-        }
+        fileInput.addEventListener('change', function(e) {
+          var file = e.target.files[0];
+          if (!file) return;
 
-        // Add row button
-        const addBtn = document.getElementById('addEnvRow');
-        if (addBtn) {
-            addBtn.addEventListener('click', function () {
-                addEnvRow('', '');
-            });
-        }
+          var reader = new FileReader();
+          reader.onload = function(loadEvent) {
+            var content = loadEvent.target.result;
+            var lines = content.split('\n');
+            var pairs = [];
 
-        // ── Import .env file ──
-        const importBtn = document.getElementById('importEnvBtn');
-        const fileInput = document.getElementById('envFileInput');
-        if (importBtn && fileInput) {
-            importBtn.addEventListener('click', function () {
-                fileInput.click();
-            });
-
-            fileInput.addEventListener('change', function (e) {
-                var file = e.target.files[0];
-                if (!file) return;
-
-                var reader = new FileReader();
-                reader.onload = function (loadEvent) {
-                    var content = loadEvent.target.result;
-                    var lines = content.split('\n');
-                    var pairs = [];
-
-                    lines.forEach(function (line) {
-                        line = line.trim();
-                        // Skip empty lines and comments
-                        if (!line || line.startsWith('#')) return;
-                        var eqIndex = line.indexOf('=');
-                        if (eqIndex > 0) {
-                            var key = line.substring(0, eqIndex).trim();
-                            var val = line.substring(eqIndex + 1).trim();
-                            // Remove surrounding quotes from value if present
-                            if ((val.startsWith('"') && val.endsWith('"')) ||
-                                (val.startsWith("'") && val.endsWith("'"))) {
-                                val = val.substring(1, val.length - 1);
-                            }
-                            if (key) {
-                                pairs.push({ key: key, value: val });
-                            }
-                        }
-                    });
-
-                    if (pairs.length > 0) {
-                        // Replace all existing rows with the first pair
-                        var rows = container.querySelectorAll('.env-var-row');
-                        // Fill first row with first pair
-                        var firstRow = rows[0];
-                        var firstKeyInput = firstRow.querySelector('.env-key');
-                        var firstValueInput = firstRow.querySelector('.env-value');
-                        if (firstKeyInput) firstKeyInput.value = pairs[0].key;
-                        if (firstValueInput) firstValueInput.value = pairs[0].value;
-
-                        // Remove extra existing rows (keep only the first)
-                        for (var i = 1; i < rows.length; i++) {
-                            rows[i].remove();
-                        }
-
-                        // Add rows for remaining pairs
-                        for (var j = 1; j < pairs.length; j++) {
-                            addEnvRow(pairs[j].key, pairs[j].value);
-                        }
-
-                        updateEnvRowIndices();
-                        showToast('Imported ' + pairs.length + ' environment variables from ' + file.name, { type: 'success', duration: 3000, position: 'bottom-end' });
-                    } else {
-                        showToast('No valid KEY=VALUE pairs found in the file.', { type: 'warning', duration: 3000, position: 'bottom-end' });
-                    }
-
-                    // Reset file input so same file can be re-imported
-                    fileInput.value = '';
-                };
-                reader.readAsText(file);
-            });
-        }
-
-        // Form submit - validate at least one key is filled
-        const form = document.getElementById('envVarsForm');
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                const rows = container.querySelectorAll('.env-var-row');
-                var hasValid = false;
-                rows.forEach(function (row) {
-                    const keyInput = row.querySelector('.env-key');
-                    if (keyInput && keyInput.value.trim()) {
-                        hasValid = true;
-                    }
-                });
-                if (!hasValid) {
-                    e.preventDefault();
-                    showToast('Please fill in at least one environment variable key.', { type: 'danger', duration: 3000, position: 'bottom-end' });
+            lines.forEach(function(line) {
+              line = line.trim();
+              // Skip empty lines and comments
+              if (!line || line.startsWith('#')) return;
+              var eqIndex = line.indexOf('=');
+              if (eqIndex > 0) {
+                var key = line.substring(0, eqIndex).trim();
+                var val = line.substring(eqIndex + 1).trim();
+                // Remove surrounding quotes from value if present
+                if ((val.startsWith('"') && val.endsWith('"')) ||
+                  (val.startsWith("'") && val.endsWith("'"))) {
+                  val = val.substring(1, val.length - 1);
                 }
+                if (key) {
+                  pairs.push({
+                    key: key,
+                    value: val
+                  });
+                }
+              }
             });
-        }
+
+            if (pairs.length > 0) {
+              // Replace all existing rows with the first pair
+              var rows = container.querySelectorAll('.env-var-row');
+              // Fill first row with first pair
+              var firstRow = rows[0];
+              var firstKeyInput = firstRow.querySelector('.env-key');
+              var firstValueInput = firstRow.querySelector('.env-value');
+              if (firstKeyInput) firstKeyInput.value = pairs[0].key;
+              if (firstValueInput) firstValueInput.value = pairs[0].value;
+
+              // Remove extra existing rows (keep only the first)
+              for (var i = 1; i < rows.length; i++) {
+                rows[i].remove();
+              }
+
+              // Add rows for remaining pairs
+              for (var j = 1; j < pairs.length; j++) {
+                addEnvRow(pairs[j].key, pairs[j].value);
+              }
+
+              updateEnvRowIndices();
+              showToast('Imported ' + pairs.length + ' environment variables from ' + file.name, {
+                type: 'success',
+                duration: 3000,
+                position: 'bottom-end'
+              });
+            } else {
+              showToast('No valid KEY=VALUE pairs found in the file.', {
+                type: 'warning',
+                duration: 3000,
+                position: 'bottom-end'
+              });
+            }
+
+            // Reset file input so same file can be re-imported
+            fileInput.value = '';
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      // Form submit - validate at least one key is filled
+      const form = document.getElementById('envVarsForm');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          const rows = container.querySelectorAll('.env-var-row');
+          var hasValid = false;
+          rows.forEach(function(row) {
+            const keyInput = row.querySelector('.env-key');
+            if (keyInput && keyInput.value.trim()) {
+              hasValid = true;
+            }
+          });
+          if (!hasValid) {
+            e.preventDefault();
+            showToast('Please fill in at least one environment variable key.', {
+              type: 'danger',
+              duration: 3000,
+              position: 'bottom-end'
+            });
+          }
+        });
+      }
     });
 
     // ── Export Functions ───────────────────────────────────────────
     function exportEnvVars(format) {
-        // Get selected environment from the URL or the active dropdown
-        const urlParams = new URLSearchParams(window.location.search);
-        const selectedEnv = urlParams.get('environment') || 'production';
-        
-        const envVars = [];
-        
-        // Get all environment variables from the table
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(function(row) {
-            const keyCell = row.querySelector('td:first-child code');
-            const valueCell = row.querySelector('td:nth-child(2) code');
-            if (keyCell && valueCell) {
-                const key = keyCell.textContent.trim();
-                const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
-                envVars.push({ key: key, value: value });
-            }
+      // Get selected environment from the URL or the active dropdown
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectedEnv = urlParams.get('environment') || 'production';
+
+      const envVars = [];
+
+      // Get all environment variables from the table
+      const rows = document.querySelectorAll('tbody tr');
+      rows.forEach(function(row) {
+        const keyCell = row.querySelector('td:first-child code');
+        const valueCell = row.querySelector('td:nth-child(2) code');
+        if (keyCell && valueCell) {
+          const key = keyCell.textContent.trim();
+          const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
+          envVars.push({
+            key: key,
+            value: value
+          });
+        }
+      });
+
+      if (envVars.length === 0) {
+        showToast('No environment variables to export', {
+          type: 'warning',
+          duration: 3000,
+          position: 'bottom-end'
         });
-        
-        if (envVars.length === 0) {
-            showToast('No environment variables to export', { type: 'warning', duration: 3000, position: 'bottom-end' });
-            return;
-        }
-        
-        let content, fileName, mimeType;
-        
-        if (format === 'json') {
-            const jsonObj = {};
-            envVars.forEach(function(env) {
-                jsonObj[env.key] = env.value;
-            });
-            content = JSON.stringify(jsonObj, null, 2);
-            fileName = '.env.' + selectedEnv + '.json';
-            mimeType = 'application/json';
-        } else if (format === 'yml') {
-            content = envVars.map(function(env) {
-                return env.key + ': "' + env.value.replace(/"/g, '\\"') + '"';
-            }).join('\n');
-            fileName = '.env.' + selectedEnv + '.yml';
-            mimeType = 'text/yaml';
-        } else {
-            content = envVars.map(function(env) {
-                return env.key + '=' + env.value;
-            }).join('\n');
-            fileName = '.env.' + selectedEnv;
-            mimeType = 'text/plain';
-        }
-        
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        const formatName = format === 'env' ? '.env' : format.toUpperCase();
-        showToast('Exported ' + envVars.length + ' variables as ' + formatName, { type: 'success', duration: 2000, position: 'bottom-end' });
+        return;
+      }
+
+      let content, fileName, mimeType;
+
+      if (format === 'json') {
+        const jsonObj = {};
+        envVars.forEach(function(env) {
+          jsonObj[env.key] = env.value;
+        });
+        content = JSON.stringify(jsonObj, null, 2);
+        fileName = '.env.' + selectedEnv + '.json';
+        mimeType = 'application/json';
+      } else if (format === 'yml') {
+        content = envVars.map(function(env) {
+          return env.key + ': "' + env.value.replace(/"/g, '\\"') + '"';
+        }).join('\n');
+        fileName = '.env.' + selectedEnv + '.yml';
+        mimeType = 'text/yaml';
+      } else {
+        content = envVars.map(function(env) {
+          return env.key + '=' + env.value;
+        }).join('\n');
+        fileName = '.env.' + selectedEnv;
+        mimeType = 'text/plain';
+      }
+
+      const blob = new Blob([content], {
+        type: mimeType
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      const formatName = format === 'env' ? '.env' : format.toUpperCase();
+      showToast('Exported ' + envVars.length + ' variables as ' + formatName, {
+        type: 'success',
+        duration: 2000,
+        position: 'bottom-end'
+      });
     }
 
     function copyAllToClipboard() {
-        const envVars = [];
-        
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(function(row) {
-            const keyCell = row.querySelector('td:first-child code');
-            const valueCell = row.querySelector('td:nth-child(2) code');
-            if (keyCell && valueCell) {
-                const key = keyCell.textContent.trim();
-                const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
-                envVars.push(key + '=' + value);
-            }
+      const envVars = [];
+
+      const rows = document.querySelectorAll('tbody tr');
+      rows.forEach(function(row) {
+        const keyCell = row.querySelector('td:first-child code');
+        const valueCell = row.querySelector('td:nth-child(2) code');
+        if (keyCell && valueCell) {
+          const key = keyCell.textContent.trim();
+          const value = valueCell.dataset.envValue ? decodeURIComponent(valueCell.dataset.envValue) : valueCell.textContent.trim();
+          envVars.push(key + '=' + value);
+        }
+      });
+
+      if (envVars.length === 0) {
+        showToast('No environment variables to copy', {
+          type: 'warning',
+          duration: 3000,
+          position: 'bottom-end'
         });
-        
-        if (envVars.length === 0) {
-            showToast('No environment variables to copy', { type: 'warning', duration: 3000, position: 'bottom-end' });
-            return;
-        }
-        
-        const text = envVars.join('\n');
-        
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied ' + envVars.length + ' environment variables to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
-            }).catch(() => {
-                fallbackCopyAll(text);
-            });
-        } else {
-            fallbackCopyAll(text);
-        }
+        return;
+      }
+
+      const text = envVars.join('\n');
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Copied ' + envVars.length + ' environment variables to clipboard!', {
+            type: 'success',
+            duration: 2000,
+            position: 'bottom-end'
+          });
+        }).catch(() => {
+          fallbackCopyAll(text);
+        });
+      } else {
+        fallbackCopyAll(text);
+      }
     }
 
     function fallbackCopyAll(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand('copy');
-            showToast('Copied to clipboard!', { type: 'success', duration: 2000, position: 'bottom-end' });
-        } catch (e) {
-            showToast('Failed to copy. Please select and copy manually.', { type: 'danger', duration: 3000, position: 'bottom-end' });
-        }
-        document.body.removeChild(textarea);
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!', {
+          type: 'success',
+          duration: 2000,
+          position: 'bottom-end'
+        });
+      } catch (e) {
+        showToast('Failed to copy. Please select and copy manually.', {
+          type: 'danger',
+          duration: 3000,
+          position: 'bottom-end'
+        });
+      }
+      document.body.removeChild(textarea);
     }
-</script>
+  </script>

@@ -47,7 +47,7 @@ const ProjectAccess = {
      */
     async findById(id) {
         const [rows] = await db.query(
-            `SELECT pa.*, u.email, u.name as user_name, u.username,
+            `SELECT pa.*, u.email, u.name as user_name, u.username, u.avatar,
                     p.name as project_name, p.user_id as owner_id
              FROM project_access pa
              JOIN users u ON u.id = pa.user_id
@@ -89,7 +89,7 @@ const ProjectAccess = {
      */
     async findByProjectId(projectId) {
         const [rows] = await db.query(
-            `SELECT pa.*, u.email, u.name as user_name, u.username
+            `SELECT pa.*, u.email, u.name as user_name, u.username, u.avatar
              FROM project_access pa
              JOIN users u ON u.id = pa.user_id
              WHERE pa.project_id = ?

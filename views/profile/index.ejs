@@ -1,0 +1,122 @@
+<div class="container py-4">
+  <div class="row">
+
+    <!-- ========================= -->
+    <!-- Left Sidebar -->
+    <!-- ========================= -->
+    <div class="col-lg-4 mb-4">
+
+      <div class="card bg-dark border-secondary">
+
+        <div class="card-body text-center">
+
+          <!-- Avatar -->
+          <div class="position-relative d-inline-block">
+
+            <% if (user.avatar) { %>
+            <img src="<%= user.avatar %>" class="rounded-circle border border-success" style="width:140px;height:140px;object-fit:cover;" alt="Avatar">
+            <% } else { %>
+            <div class="rounded-circle border border-secondary d-flex align-items-center justify-content-center" style="width:140px;height:140px;">
+              <i class="bi bi-person-fill text-secondary" style="font-size:4rem;"></i>
+            </div>
+            <% } %>
+
+            <!-- Edit Avatar Button -->
+            <div class="dropdown">
+
+              <button class="btn btn-success btn-sm rounded-circle position-absolute bottom-0 end-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+
+              <div class="dropdown-menu dropdown-menu-dark p-3" style="min-width:280px;">
+
+                <form action="/<%= user.username %>/avatar" method="POST" id="avatar-form">
+
+                  <div class="row g-2">
+                    <strong class="mb-2">Select an Avatar</strong>
+                    <% avatars.forEach(function(avatar, index){ %>
+                    <div class="col-3">
+                      <label class="avatar-option w-100">
+                        <input type="radio" class="d-none avatar-radio" name="avatar" value="<%= avatar %>" <%=user.avatar===avatar ? 'checked' : '' %>>
+                        <div class="avatar-box rounded-circle border p-1 <%= user.avatar===avatar ? 'border-success border-2' : 'border-secondary' %>">
+                          <img src="<%= avatar %>" class="img-fluid rounded-circle w-100" alt="Avatar<%= index + 1 %> Option">
+                        </div>
+                      </label>
+                    </div>
+                    <% }) %>
+                  </div>
+
+                </form>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- User Info -->
+
+          <div class="mt-4">
+
+            <h4 class="mb-1 fw-bold">
+              <%= user.name || "Unknown User" %>
+            </h4>
+
+            <div class="text-muted mb-2">
+              @<%= user.username %>
+            </div>
+
+          </div>
+
+          <!-- Organization -->
+          <% if(user.organization){ %>
+          <div class="mt-4 text-start">
+            <h6 class="mb-1 fw-semibold">
+              Organization
+            </h6>
+            <div class="small text-secondary">
+              <i class="bi bi-building me-1"></i>
+              <%= user.organization %>
+            </div>
+          </div>
+          <% } %>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- Right Content -->
+    <!-- ========================= -->
+    <div class="col-lg-8">
+
+      <!-- Leave empty for now -->
+
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+  document.querySelectorAll(".avatar-radio").forEach(radio => {
+
+    radio.addEventListener("change", function() {
+
+      document.querySelectorAll(".avatar-box").forEach(box => {
+        box.classList.remove("border-success", "border-2");
+        box.classList.add("border-secondary");
+      });
+
+      const selected = this.closest(".avatar-option").querySelector(".avatar-box");
+
+      selected.classList.remove("border-secondary");
+      selected.classList.add("border-success", "border-2");
+
+      document.getElementById("avatar-form").submit();
+
+    });
+
+  });
+</script>
