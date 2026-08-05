@@ -85,6 +85,17 @@ const User = {
     },
 
     /**
+     * Update user avatar
+     */
+    async updateAvatar(id, avatar) {
+        const [result] = await db.query(
+            'UPDATE users SET avatar = ? WHERE id = ?',
+            [avatar, id]
+        );
+        return result.affectedRows > 0;
+    },
+
+    /**
      * Soft delete user
      */
     async softDelete(id) {
@@ -113,12 +124,12 @@ const User = {
      */
     async searchByIdentifier(query, excludeUserId) {
         const [rows] = await db.query(
-            `SELECT id, email, name, username
-             FROM users
-             WHERE (email LIKE ? OR username LIKE ?) 
-                AND id != ? 
-                AND status = ?
-             LIMIT 10`,
+             `SELECT id, email, name, username, avatar
+              FROM users
+              WHERE (email LIKE ? OR username LIKE ?) 
+                 AND id != ? 
+                 AND status = ?
+              LIMIT 10`,
             [`%${query}%`, `%${query}%`, excludeUserId, 'active']
         );
         return rows;

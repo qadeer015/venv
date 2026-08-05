@@ -3,8 +3,13 @@
         <div class="col-lg-8">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/<%= user.username %>"
-                            class="text-success text-decoration-none"><%= owner.username %></a></li>
+                    <li class="breadcrumb-item">
+                        <a href="/<%= user.username %>"
+                            class="text-success text-decoration-none">
+                            <img src="<%= user.avatar %>" class="rounded-circle me-1" style="width: 24px; height: 24px; object-fit: cover;" alt="<%= user.username %> Avatar">
+                            <%= user.username %>
+                        </a>
+                    </li>
                     <li class="breadcrumb-item"><a href="/<%= owner.username %>/<%= project.slug %>"
                             class="text-success text-decoration-none">
                             <%= project.name %>

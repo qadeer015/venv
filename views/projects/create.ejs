@@ -3,10 +3,15 @@
         <div class="col-lg-8">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/<%= user.username %>"
+                    <li class="breadcrumb-item">
+                        <a href="/<%= user.username %>" class="text-success text-decoration-none">
+                            <img src="<%= user.avatar %>" class="rounded-circle me-1" style="width: 24px; height: 24px; object-fit: cover;" alt="<%= user.username %> Avatar">
+                        </a>
+                        <a href="/<%= user.username %>"
                             class="text-success text-decoration-none">
                             <%= user.username %>
-                        </a></li>
+                        </a>
+                    </li>
                     <li class="breadcrumb-item active" aria-current="page">Create Project</li>
                 </ol>
             </nav>

@@ -42,7 +42,7 @@ const onboardingController = {
                 organization: organization ? organization.trim() : null
             });
 
-            res.redirect(`${user.username}`);
+            res.redirect(`/${username.trim().toLowerCase()}`);
         } catch (err) {
             next(err);
         }

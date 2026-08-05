@@ -116,7 +116,7 @@ const projectController = {
             const allEnvVars = await Environment.findByProjectId(project.id);
             const envVars = allEnvVars.filter(env => env.environment === environmentFilter);
             const accessList = isOwner ? await ProjectAccess.findByProjectId(project.id) : [];
-
+            
             // Fetch owner info for display
             const owner = await User.findById(project.user_id);
 

@@ -5,7 +5,7 @@ const AppError = require('../utils/AppError');
 
 const signToken = (user) => {
     return jwt.sign(
-        { id: user.id, email: user.email, username: user.username, role: user.role },
+        { id: user.id, email: user.email, username: user.username, role: user.role, avatar: user.avatar || null },
         process.env.JWT_SECRET || process.env.SECRET_KEY,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );

@@ -7,6 +7,7 @@ const onboardingController = require('../controllers/onboardingController');
 const projectController = require('../controllers/projectController');
 const environmentController = require('../controllers/environmentController');
 const accessController = require('../controllers/accessController');
+const profileController = require('../controllers/profileController');
 
 // ── Auth Routes ──────────────────────────────────────────────────────
 router.get('/auth/login', authController.showLogin);
@@ -18,6 +19,10 @@ router.post('/auth/logout', authController.logout);
 // ── Onboarding Routes ────────────────────────────────────────────────
 router.get('/onboarding', onboardingController.showOnboarding);
 router.post('/onboarding', onboardingController.completeOnboarding);
+
+// ── Profile Routes ───────────────────────────────────────────────────
+router.get('/profile', profileController.showProfile);
+router.post('/profile/avatar', profileController.updateAvatar);
 
 // ── Project Routes ───────────────────────────────────────────────────
 router.get('/new', projectController.showCreate);
