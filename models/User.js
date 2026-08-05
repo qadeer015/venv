@@ -59,15 +59,16 @@ const User = {
     /**
      * Update user profile (onboarding)
      */
-    async updateProfile(id, { name, username, organization }) {
+    async updateProfile(id, { name, username, avatar, organization }) {
         const [result] = await db.query(
             `UPDATE users
              SET name = COALESCE(?, name),
                  username = COALESCE(?, username),
+                 avatar = COALESCE(?, avatar),
                  organization = COALESCE(?, organization),
                  onboarded = 1
              WHERE id = ?`,
-            [name, username, organization, id]
+            [name, username, avatar, organization, id]
         );
         return result.affectedRows > 0;
     },
