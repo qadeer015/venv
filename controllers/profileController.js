@@ -50,7 +50,7 @@ const profileController = {
             await User.updateAvatar(req.user.id, avatar);
 
             req.session.success = 'Avatar updated successfully!';
-            res.redirect('/profile');
+            res.redirect(`/${req.user.username}`);
         } catch (err) {
             next(err);
         }

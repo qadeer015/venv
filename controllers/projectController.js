@@ -9,7 +9,7 @@ const projectController = {
     // ── GET: Dashboard - List all projects ──────────────────────────
     async dashboard(req, res, next) {
         try {
-            if (!req.user) return res.redirect('/auth/login');
+            if (!req.user) return res.render('landing');
             
             const [ownedProjects, sharedProjects, pendingRequests, pendingInvitations] = await Promise.all([
                 Project.findByUserId(req.user.id),

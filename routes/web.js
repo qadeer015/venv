@@ -20,10 +20,6 @@ router.post('/auth/logout', authController.logout);
 router.get('/onboarding', onboardingController.showOnboarding);
 router.post('/onboarding', onboardingController.completeOnboarding);
 
-// ── Profile Routes ───────────────────────────────────────────────────
-router.get('/profile', profileController.showProfile);
-router.post('/profile/avatar', profileController.updateAvatar);
-
 // ── Project Routes ───────────────────────────────────────────────────
 router.get('/new', projectController.showCreate);
 router.post('/projects', projectController.create);
@@ -34,8 +30,9 @@ router.put('/:username/:projectSlug', projectController.update);
 router.delete('/:username/:projectSlug', projectController.delete);
 
 
-// ── Dashboard ────────────────────────────────────────────────────────
-router.get('/:username', projectController.dashboard);
+// ── Profile Routes ────────────────────────────────────────────────────────
+router.get('/:username', profileController.showProfile);
+router.post('/:username/avatar', profileController.updateAvatar);
 
 // ── Environment Variable Routes ──────────────────────────────────────
 router.post('/:username/:projectSlug/environments', environmentController.upsert);
@@ -59,12 +56,7 @@ router.post('/:username/:projectSlug/access/:accessId/update', accessController.
 router.delete('/:username/:projectSlug/access/:accessId', accessController.revokeAccess);
 router.get('/api/users/search', accessController.searchUsers);
 
-// ── Root redirect ────────────────────────────────────────────────────
-router.get('/', (req, res) => {
-    if (req.user) {
-        return res.redirect(`/${req.user.username}`);
-    }
-    res.redirect('/auth/login');
-});
+// ── Root ────────────────────────────────────────────────────
+router.get('/', projectController.dashboard);
 
 module.exports = router;
