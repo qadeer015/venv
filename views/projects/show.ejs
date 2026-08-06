@@ -14,20 +14,27 @@
   </nav>
 
   <!-- Project Header -->
-  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
-    <div>
-      <h1 class="fw-bold mb-1">
-        <%= project.name %>
-      </h1>
-      <% if (!isOwner) { %>
-      <p class="text-muted mb-0">
-        Shared by
-        <a href="/<%= owner.name %>/<%= project.name %>" class="text-primary border-0 btn-sm">
-          <%= owner.username %>/<%= project.name %>
-        </a>
-      </p>
-      <% } %>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div>
+        <h1 class="fw-bold mb-1">
+          <%= project.name %>
+        </h1>
+        <% if (!isOwner) { %>
+        <p class="text-muted mb-0">
+          Shared by
+          <a href="/<%= owner.username %>/<%= project.name %>" class="text-primary border-0 btn-sm">
+            <%= owner.username %>/<%= project.name %>
+          </a>
+        </p>
+        <% } %>
+      </div>
     </div>
+    <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
+    <button type="button" id="toggleEnvPanelBtn" class="btn btn-outline-light px-3" aria-expanded="false" aria-controls="envPanel">
+      <i class="bi bi-plus-circle me-2"></i>Add Environment Variable
+    </button>
+    <% } %>
   </div>
 
   <div class="row g-4">
@@ -199,82 +206,6 @@
         </div>
       </div>
 
-      <!-- Add Environment Variables Form (Bulk) -->
-      <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
-      <div class="card bg-dark border-secondary mt-4">
-        <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-plus-circle text-success me-2"></i>Add
-            Environment Variables</h5>
-          <span class="badge bg-success" id="env-count-badge">0</span>
-        </div>
-        <div class="card-body p-4">
-          <form id="envVarsForm" action="/<%= owner.username %>/<%= project.slug %>/environments/bulk" method="POST">
-            <div id="envVarsContainer">
-              <!-- First row -->
-              <div class="env-var-row mb-4">
-                <div class="mb-2">
-                  <label class="form-label text-muted small">Key</label>
-                  <div class="position-relative">
-                    <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-key" name="envVars[0][key]" required placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*" title="Uppercase letters, numbers, and underscores">
-                    <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2" disabled>
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label text-muted small">Value</label>
-                  <div class="position-relative">
-                    <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-value" name="envVars[0][value]" placeholder="mysql://user:pass@host/db">
-                    <button type="button" class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn" data-env-id="">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label text-muted small">Environment</label>
-                  <select class="form-select bg-dark text-light border-secondary env-environment" name="envVars[0][environment]">
-                    <% if (accessibleEnvironments.includes('development')) { %>
-                    <option value="development" <%=selectedEnvironment==='development' ? 'selected'
-                                                                    : '' %>>Development</option>
-                    <% } %>
-                    <% if (accessibleEnvironments.includes('staging')) {
-                                                                        %>
-                    <option value="staging" <%=selectedEnvironment==='staging'
-                                                                            ? 'selected' : '' %>>Staging</option>
-                    <% } %>
-                    <% if
-                                                                                (accessibleEnvironments.includes('production'))
-                                                                                { %>
-                    <option value="production" <%=selectedEnvironment==='production'
-                                                                                    ? 'selected' : '' %>>Production
-                    </option>
-                    <% } %>
-                  </select>
-                </div>
-                <div>
-                  <label class="form-label text-muted small">Note <span class="text-muted">(Optional)</span></label>
-                  <input type="text" class="form-control bg-dark text-light border-secondary env-note" name="envVars[0][note]" placeholder="Where to rotate, or who to contact">
-                </div>
-              </div>
-            </div>
-            <div class="mt-3">
-              <button type="button" id="addEnvRow" class="btn btn-outline-success">
-                <i class="bi bi-plus-lg"></i> Add Another
-              </button>
-              <button type="button" id="importEnvBtn" class="btn btn-outline-info ms-2">
-                <i class="bi bi-upload"></i> Import .env
-              </button>
-              <input type="file" id="envFileInput" accept=".env,.txt" style="display:none">
-            </div>
-            <div class="mt-3 text-end">
-              <button type="submit" class="btn btn-success">
-                <i class="bi bi-save"></i> Save All
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      <% } %>
     </div>
 
     <!-- Access Management Sidebar -->
@@ -463,7 +394,152 @@
     </div>
   </div>
 
+  <!-- Right-side Add Environment Variable Panel -->
+  <% if (isOwner || (userAccess && userAccess.permission==='edit' )) { %>
+  <div id="envPanelOverlay" class="env-panel-overlay" aria-hidden="true"></div>
+  <aside id="envPanel" class="env-panel overflow-hidden" aria-label="Add environment variables" aria-hidden="true">
+    <div class="p-3 h-100">
+      <div class="d-flex align-items-center justify-content-between border-bottom border-secondary pb-3 mb-3 position-sticky top-0">
+        <div>
+          <h5 class="mb-0">Add Environment Variable</h5>
+        </div>
+        <button type="button" id="closeEnvPanelBtn" class="btn btn-sm btn-outline-secondary border-0" aria-label="Close add environment panel">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form id="envVarsForm" action="/<%= owner.username %>/<%= project.slug %>/environments/bulk" method="POST" class="h-100 d-flex flex-column">
+        <div class="flex-grow-1 overflow-auto" style="max-height: 81.5vh;scrollbar-width:none;">
+          <div class="w-100" id="envVarsContainer">
+            <!-- First row -->
+            <div class="env-var-row mb-4">
+              <div class="mb-2">
+                <label class="form-label text-muted small">Key</label>
+                <div class="position-relative">
+                  <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-key" name="envVars[0][key]" required placeholder="DATABASE_URL" pattern="[A-Z_][A-Z0-9_]*" title="Uppercase letters, numbers, and underscores">
+                  <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-env-row position-absolute top-50 end-0 translate-middle-y me-2" disabled>
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-muted small">Value</label>
+                <div class="position-relative">
+                  <input type="text" class="form-control bg-dark text-light border-secondary font-monospace env-value" name="envVars[0][value]" placeholder="mysql://user:pass@host/db">
+                  <button type="button" class="btn btn-sm btn-outline-secondary border-0 position-absolute top-50 end-0 translate-middle-y me-2 toggle-env-btn" data-env-id="">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-muted small">Environment</label>
+                <select class="form-select bg-dark text-light border-secondary env-environment" name="envVars[0][environment]">
+                  <% if (accessibleEnvironments.includes('development')) { %>
+                  <option value="development" <%=selectedEnvironment==='development' ? 'selected' : '' %>>Development</option>
+                  <% } %>
+                  <% if (accessibleEnvironments.includes('staging')) { %>
+                  <option value="staging" <%=selectedEnvironment==='staging' ? 'selected' : '' %>>Staging</option>
+                  <% } %>
+                  <% if (accessibleEnvironments.includes('production')) { %>
+                  <option value="production" <%=selectedEnvironment==='production' ? 'selected' : '' %>>Production</option>
+                  <% } %>
+                </select>
+              </div>
+              <div>
+                <label class="form-label text-muted small">Note <span class="text-muted">(Optional)</span></label>
+                <input type="text" class="form-control bg-dark text-light border-secondary env-note" name="envVars[0][note]" placeholder="Where to rotate, or who to contact">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <div class="col-12">
+              <button type="button" id="addEnvRow" class="btn btn-outline-success flex-grow-1">
+                <i class="bi bi-plus-lg"></i> Add Another
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-top border-secondary py-3 mt-auto position-sticky bottom-0">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="col">
+              <button type="button" id="importEnvBtn" class="btn btn-outline-info">
+                <i class="bi bi-upload"></i> Import .env
+              </button>
+              <input type="file" id="envFileInput" accept=".env,.txt" style="display:none">
+            </div>
+            <div class="col-4">
+              <button type="submit" class="btn btn-success w-100">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </aside>
+  <% } %>
+
+  <style>
+    .env-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.62);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 1040;
+    }
+
+    .env-panel-overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .env-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(560px, 92vw);
+      height: 100vh;
+      background: rgba(17, 24, 39, 0.98);
+      border-left: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: -20px 0 40px rgba(0, 0, 0, 0.35);
+      transform: translateX(105%);
+      transition: transform 0.25s ease;
+      z-index: 1050;
+      overflow-y: auto;
+    }
+
+    .env-panel.is-open {
+      transform: translateX(0);
+    }
+
+    @media (max-width: 767px) {
+      .env-panel {
+        width: 100vw;
+      }
+    }
+  </style>
+
   <script>
+    function toggleEnvPanel(forceOpen) {
+      const panel = document.getElementById('envPanel');
+      const overlay = document.getElementById('envPanelOverlay');
+      const trigger = document.getElementById('toggleEnvPanelBtn');
+
+      if (!panel || !overlay || !trigger) return;
+
+      const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !panel.classList.contains('is-open');
+      panel.classList.toggle('is-open', shouldOpen);
+      overlay.classList.toggle('is-visible', shouldOpen);
+      panel.setAttribute('aria-hidden', String(!shouldOpen));
+      overlay.setAttribute('aria-hidden', String(!shouldOpen));
+      trigger.setAttribute('aria-expanded', String(shouldOpen));
+      document.body.style.overflow = shouldOpen ? 'hidden' : '';
+    }
+
     function copyEnvValue(button, id) {
       // Get the value from the data attribute (HTML-encoded, so we decode it)
       const encoded = button.getAttribute('data-env-value');
@@ -685,6 +761,37 @@
       if (addBtn) {
         addBtn.addEventListener('click', function() {
           addEnvRow('', '');
+        });
+      }
+
+      const togglePanelBtn = document.getElementById('toggleEnvPanelBtn');
+      const closePanelBtn = document.getElementById('closeEnvPanelBtn');
+      const panelOverlay = document.getElementById('envPanelOverlay');
+      const envPanel = document.getElementById('envPanel');
+
+      if (togglePanelBtn) {
+        togglePanelBtn.addEventListener('click', function() {
+          toggleEnvPanel();
+        });
+      }
+
+      if (closePanelBtn) {
+        closePanelBtn.addEventListener('click', function() {
+          toggleEnvPanel(false);
+        });
+      }
+
+      if (panelOverlay) {
+        panelOverlay.addEventListener('click', function() {
+          toggleEnvPanel(false);
+        });
+      }
+
+      if (envPanel) {
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && envPanel.classList.contains('is-open')) {
+            toggleEnvPanel(false);
+          }
         });
       }
 
